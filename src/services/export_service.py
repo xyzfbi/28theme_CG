@@ -170,21 +170,25 @@ class ExportService:
                 ret1, frame1 = cap1.read()
                 ret2, frame2 = cap2.read()
 
-                if not ret1 or not ret2:
-                    break
+                if not ret1 or frame1 is None:
+                   frame1_used = None
+                else:
+                    frame1_used = frame1
 
-                # Создание композиции
+                if not ret2 or frame2 is None:
+                    frame2_used = None
+                else:
+                    frame2_used = frame2
+
+                    # Создание композиции и запись кадра
                 composed_frame = composition_engine.compose_frame(
                     background,
-                    frame1,
-                    frame2,
+                    frame1_used,
+                    frame2_used,
                     meeting_config.speaker1_name,
                     meeting_config.speaker2_name,
                 )
-
-                # Запись кадра
                 out.write(composed_frame)
-
                 frame_idx += 1
 
                 # Прогресс

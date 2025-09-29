@@ -36,31 +36,20 @@ st.set_page_config(
 # Инициализация логгера
 logger = setup_logger()
 
-# Убираем лимиты на размер файлов
-st.config.set_option('server.maxUploadSize', 1000)
 
 def main():
     """Главная функция веб-приложения."""
 
-    # Заголовок приложения
-    #st.title("🎥 Video Meeting Composer")
-    #st.markdown(
-     #   "Создайте профессиональные видеовстречи из фонового изображения и видео спикеров"
-    #)
-
-    # Инициализация session state для параметров
     init_session_state()
 
-    # Основная структура - две колонки
     col_preview, col_settings = st.columns([2, 1])
 
     with col_preview:
         render_preview_section()
 
     with col_settings:
-        render_settings_section()
+        render_settings_section()  # tabs теперь включают "Загрузка файлов"
 
-    # Кнопка создания видео внизу
     render_export_section()
 
 
@@ -68,134 +57,67 @@ def init_session_state():
     """Инициализация состояния сессии с параметрами по умолчанию."""
 
     # Файлы
-    if 'background_file' not in st.session_state:
+    if "background_file" not in st.session_state:
         st.session_state.background_file = None
-    if 'speaker1_file' not in st.session_state:
+    if "speaker1_file" not in st.session_state:
         st.session_state.speaker1_file = None
-    if 'speaker2_file' not in st.session_state:
+    if "speaker2_file" not in st.session_state:
         st.session_state.speaker2_file = None
-    if 'speaker1_name' not in st.session_state:
+    if "speaker1_name" not in st.session_state:
         st.session_state.speaker1_name = "Спикер 1"
-    if 'speaker2_name' not in st.session_state:
+    if "speaker2_name" not in st.session_state:
         st.session_state.speaker2_name = "Спикер 2"
 
     # Настройки спикеров
-    if 'speaker_width' not in st.session_state:
+    if "speaker_width" not in st.session_state:
         st.session_state.speaker_width = 400
-    if 'speaker_height' not in st.session_state:
+    if "speaker_height" not in st.session_state:
         st.session_state.speaker_height = 300
 
     # Настройки плашек
-    if 'font_size' not in st.session_state:
+    if "font_size" not in st.session_state:
         st.session_state.font_size = 24
-    if 'font_color' not in st.session_state:
+    if "font_color" not in st.session_state:
         st.session_state.font_color = "#FFFFFF"
-    if 'plate_bg_color' not in st.session_state:
+    if "plate_bg_color" not in st.session_state:
         st.session_state.plate_bg_color = "#000000"
-    if 'plate_border_color' not in st.session_state:
+    if "plate_border_color" not in st.session_state:
         st.session_state.plate_border_color = "#FFFFFF"
-    if 'plate_border_width' not in st.session_state:
+    if "plate_border_width" not in st.session_state:
         st.session_state.plate_border_width = 2
-    if 'plate_padding' not in st.session_state:
+    if "plate_padding" not in st.session_state:
         st.session_state.plate_padding = 10
 
     # Настройки экспорта
-    if 'output_width' not in st.session_state:
+    if "output_width" not in st.session_state:
         st.session_state.output_width = 1920
-    if 'output_height' not in st.session_state:
+    if "output_height" not in st.session_state:
         st.session_state.output_height = 1080
-    if 'fps' not in st.session_state:
+    if "fps" not in st.session_state:
         st.session_state.fps = 30
-    if 'ffmpeg_preset' not in st.session_state:
+    if "ffmpeg_preset" not in st.session_state:
         st.session_state.ffmpeg_preset = "fast"
-    if 'ffmpeg_crf' not in st.session_state:
+    if "ffmpeg_crf" not in st.session_state:
         st.session_state.ffmpeg_crf = 23
-    if 'use_gpu' not in st.session_state:
+    if "use_gpu" not in st.session_state:
         st.session_state.use_gpu = True
 
 
 def render_preview_section():
     """Отображение секции предпросмотра."""
-
     st.header("🔍 Предпросмотр")
-
-    # Загрузка файлов
-    st.subheader("📁 Загрузка файлов")
-
-    # Фоновое изображение
-    background_file = st.file_uploader(
-        "Выберите фоновое изображение",
-        type=["jpg", "jpeg", "png", "bmp"],
-        help="Поддерживаемые форматы: JPG, PNG, BMP",
-        key="background_uploader"
-    )
-
-    # Обновляем session_state при изменении файла
-    if background_file != st.session_state.background_file:
-        st.session_state.background_file = background_file
-        st.rerun()
-
-    # Видео спикеров в двух колонках
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.write("🎤 **Видео спикера 1**")
-        speaker1_file = st.file_uploader(
-            "Выберите видео первого спикера",
-            type=["mp4", "avi", "mov", "mkv"],
-            key="speaker1_uploader",
-            help="Поддерживаемые форматы: MP4, AVI, MOV, MKV",
-        )
-
-        speaker1_name = st.text_input(
-            "Имя первого спикера",
-            value=st.session_state.speaker1_name,
-            key="name1_input",
-            help="Имя, которое будет отображаться на плашке",
-        )
-
-        # Обновляем session_state
-        if speaker1_file != st.session_state.speaker1_file:
-            st.session_state.speaker1_file = speaker1_file
-            st.rerun()
-        if speaker1_name != st.session_state.speaker1_name:
-            st.session_state.speaker1_name = speaker1_name
-            st.rerun()
-
-    with col2:
-        st.write("🎤 **Видео спикера 2**")
-        speaker2_file = st.file_uploader(
-            "Выберите видео второго спикера",
-            type=["mp4", "avi", "mov", "mkv"],
-            key="speaker2_uploader",
-            help="Поддерживаемые форматы: MP4, AVI, MOV, MKV",
-        )
-
-        speaker2_name = st.text_input(
-            "Имя второго спикера",
-            value=st.session_state.speaker2_name,
-            key="name2_input",
-            help="Имя, которое будет отображаться на плашке",
-        )
-
-        # Обновляем session_state
-        if speaker2_file != st.session_state.speaker2_file:
-            st.session_state.speaker2_file = speaker2_file
-            st.rerun()
-        if speaker2_name != st.session_state.speaker2_name:
-            st.session_state.speaker2_name = speaker2_name
-            st.rerun()
-
     st.markdown("---")
 
+    preview_placeholder = st.empty()
     # Показываем предпросмотр
     if validate_inputs(
         st.session_state.background_file,
         st.session_state.speaker1_file,
         st.session_state.speaker2_file,
         st.session_state.speaker1_name,
-        st.session_state.speaker2_name
+        st.session_state.speaker2_name,
     ):
+
         # Создаем и показываем предпросмотр
         with st.spinner("🔄 Генерация предпросмотра..."):
             # Передаем все параметры для корректного кэширования
@@ -218,10 +140,10 @@ def render_preview_section():
             )
 
             if preview_image:
-                st.image(
+                preview_placeholder.image(
                     preview_image,
                     caption="Предпросмотр композиции",
-                    use_column_width=True
+                    use_container_width=True,
                 )
 
                 # Кнопка скачивания предпросмотра
@@ -240,10 +162,11 @@ def render_preview_section():
 
         # Создаем заглушку предпросмотра
         placeholder_image = create_placeholder_preview()
-        st.image(
+
+        preview_placeholder.image(
             placeholder_image,
             caption="Предпросмотр будет здесь",
-            use_column_width=True
+            use_container_width=True,
         )
 
 
@@ -253,20 +176,59 @@ def render_settings_section():
     st.header("⚙️ Настройки")
 
     # Создаем вкладки для настроек
-    tab1, tab2, tab3 = st.tabs([
-        "🎤 Спикеры",
-        "🎨 Плашки",
-        "📤 Экспорт"
-    ])
-
+    tab_upload, tab1, tab2, tab3 = st.tabs(
+        ["⬆️ Загрузка файлов", "🎤 Спикеры", "🎨 Плашки", "📤 Экспорт"]
+    )
+    with tab_upload:
+        render_upload_tab()
     with tab1:
         render_speaker_settings()
-
     with tab2:
         render_plate_settings()
-
     with tab3:
         render_export_settings()
+
+
+def render_upload_tab():
+    st.subheader("📁 Загрузка файлов")
+    background_file = st.file_uploader(
+        "Выберите фоновое изображение",
+        type=["jpg", "jpeg", "png", "bmp"],
+        help="Поддерживаемые форматы: JPG, PNG, BMP",
+        key="background_uploader",
+    )
+    speaker1_file = st.file_uploader(
+        "Выберите видео первого спикера",
+        type=["mp4", "avi", "mov", "mkv"],
+        key="speaker1_uploader",
+        help="Поддерживаемые форматы: MP4, AVI, MOV, MKV",
+    )
+    speaker1_name = st.text_input(
+        "Имя первого спикера", value=st.session_state.speaker1_name, key="name1_input"
+    )
+    speaker2_file = st.file_uploader(
+        "Выберите видео второго спикера",
+        type=["mp4", "avi", "mov", "mkv"],
+        key="speaker2_uploader",
+        help="Поддерживаемые форматы: MP4, AVI, MOV, MKV",
+    )
+    speaker2_name = st.text_input(
+        "Имя второго спикера", value=st.session_state.speaker2_name, key="name2_input"
+    )
+    # session_state updates and rerun logic
+    changed = False
+    for name, val in [
+        ("background_file", background_file),
+        ("speaker1_file", speaker1_file),
+        ("speaker2_file", speaker2_file),
+        ("speaker1_name", speaker1_name),
+        ("speaker2_name", speaker2_name),
+    ]:
+        if getattr(st.session_state, name) != val:
+            setattr(st.session_state, name, val)
+            changed = True
+    if changed:
+        st.rerun()
 
 
 def render_speaker_settings():
@@ -281,7 +243,7 @@ def render_speaker_settings():
         value=st.session_state.speaker_width,
         step=50,
         help="Ширина окна для каждого спикера в пикселях",
-        key="speaker_width_slider"
+        key="speaker_width_slider",
     )
 
     speaker_height = st.slider(
@@ -291,18 +253,18 @@ def render_speaker_settings():
         value=st.session_state.speaker_height,
         step=50,
         help="Высота окна для каждого спикера в пикселях",
-        key="speaker_height_slider"
+        key="speaker_height_slider",
     )
 
     # Обновляем session_state и перерисовываем при изменении
-    if (speaker_width != st.session_state.speaker_width or
-        speaker_height != st.session_state.speaker_height):
+    if (
+        speaker_width != st.session_state.speaker_width
+        or speaker_height != st.session_state.speaker_height
+    ):
         st.session_state.speaker_width = speaker_width
         st.session_state.speaker_height = speaker_height
         st.rerun()
 
-    st.subheader("📍 Позиционирование")
-    st.info("🔄 Спикеры автоматически центрируются в своих половинах экрана")
 
 
 def render_plate_settings():
@@ -317,14 +279,14 @@ def render_plate_settings():
         value=st.session_state.font_size,
         step=2,
         help="Размер шрифта для текста на плашках",
-        key="font_size_slider"
+        key="font_size_slider",
     )
 
     font_color = st.color_picker(
         "Цвет текста",
         value=st.session_state.font_color,
         help="Цвет текста на плашках",
-        key="font_color_picker"
+        key="font_color_picker",
     )
 
     st.subheader("🎨 Фон плашки")
@@ -333,14 +295,14 @@ def render_plate_settings():
         "Цвет фона",
         value=st.session_state.plate_bg_color,
         help="Цвет фона плашки",
-        key="plate_bg_color_picker"
+        key="plate_bg_color_picker",
     )
 
     plate_border_color = st.color_picker(
         "Цвет рамки",
         value=st.session_state.plate_border_color,
         help="Цвет рамки вокруг плашки",
-        key="plate_border_color_picker"
+        key="plate_border_color_picker",
     )
 
     plate_border_width = st.slider(
@@ -350,7 +312,7 @@ def render_plate_settings():
         value=st.session_state.plate_border_width,
         step=1,
         help="Толщина рамки в пикселях",
-        key="plate_border_width_slider"
+        key="plate_border_width_slider",
     )
 
     plate_padding = st.slider(
@@ -360,7 +322,7 @@ def render_plate_settings():
         value=st.session_state.plate_padding,
         step=5,
         help="Внутренние отступы в плашке",
-        key="plate_padding_slider"
+        key="plate_padding_slider",
     )
 
     # Обновляем session_state и перерисовываем при изменении
@@ -398,7 +360,7 @@ def render_export_settings():
         options=[1280, 1920, 2560, 3840],
         index=[1280, 1920, 2560, 3840].index(st.session_state.output_width),
         help="Ширина итогового видео в пикселях",
-        key="output_width_select"
+        key="output_width_select",
     )
 
     output_height = st.selectbox(
@@ -406,17 +368,17 @@ def render_export_settings():
         options=[720, 1080, 1440, 2160],
         index=[720, 1080, 1440, 2160].index(st.session_state.output_height),
         help="Высота итогового видео в пикселях",
-        key="output_height_select"
+        key="output_height_select",
     )
 
     fps = st.slider(
         "FPS",
         min_value=24,
-        max_value=60,
+        max_value=120,
         value=st.session_state.fps,
         step=6,
         help="Частота кадров выходного видео",
-        key="fps_slider"
+        key="fps_slider",
     )
 
     st.subheader("⚡ Оптимизация")
@@ -428,7 +390,7 @@ def render_export_settings():
             st.session_state.ffmpeg_preset
         ),
         help="Скорость кодирования (быстрее = больше размер файла)",
-        key="ffmpeg_preset_select"
+        key="ffmpeg_preset_select",
     )
 
     ffmpeg_crf = st.slider(
@@ -438,14 +400,14 @@ def render_export_settings():
         value=st.session_state.ffmpeg_crf,
         step=1,
         help="Качество видео (меньше = лучше качество, больше размер)",
-        key="ffmpeg_crf_slider"
+        key="ffmpeg_crf_slider",
     )
 
     use_gpu = st.checkbox(
         "Использовать GPU",
         value=st.session_state.use_gpu,
         help="Использовать аппаратное ускорение для кодирования",
-        key="use_gpu_checkbox"
+        key="use_gpu_checkbox",
     )
 
     # Обновляем session_state и перерисовываем при изменении разрешения
@@ -536,8 +498,16 @@ def create_placeholder_preview():
     placeholder = np.ones((height, width, 3), dtype=np.uint8) * 64
 
     # Добавляем текст (простые линии)
-    placeholder[height//2-20:height//2+20, width//4:width//4*3] = [128, 128, 128]
-    placeholder[height//2-5:height//2+5, width//4:width//4*3] = [200, 200, 200]
+    placeholder[height // 2 - 20 : height // 2 + 20, width // 4 : width // 4 * 3] = [
+        128,
+        128,
+        128,
+    ]
+    placeholder[height // 2 - 5 : height // 2 + 5, width // 4 : width // 4 * 3] = [
+        200,
+        200,
+        200,
+    ]
 
     return placeholder
 
@@ -565,7 +535,9 @@ def create_preview(
         # Создаем временную директорию
         with tempfile.TemporaryDirectory() as temp_dir:
             # Сохраняем загруженные файлы
-            background_path = save_uploaded_file(st.session_state.background_file, temp_dir)
+            background_path = save_uploaded_file(
+                st.session_state.background_file, temp_dir
+            )
             speaker1_path = save_uploaded_file(st.session_state.speaker1_file, temp_dir)
             speaker2_path = save_uploaded_file(st.session_state.speaker2_file, temp_dir)
 
@@ -641,9 +613,15 @@ def create_video():
             # Создаем временную директорию
             with tempfile.TemporaryDirectory() as temp_dir:
                 # Сохраняем загруженные файлы
-                background_path = save_uploaded_file(st.session_state.background_file, temp_dir)
-                speaker1_path = save_uploaded_file(st.session_state.speaker1_file, temp_dir)
-                speaker2_path = save_uploaded_file(st.session_state.speaker2_file, temp_dir)
+                background_path = save_uploaded_file(
+                    st.session_state.background_file, temp_dir
+                )
+                speaker1_path = save_uploaded_file(
+                    st.session_state.speaker1_file, temp_dir
+                )
+                speaker2_path = save_uploaded_file(
+                    st.session_state.speaker2_file, temp_dir
+                )
 
                 # Создаем конфигурации
                 meeting_config = MeetingConfig(
@@ -673,7 +651,7 @@ def create_video():
                     fps=st.session_state.fps,
                     video_codec=VideoCodecConfig(
                         preset=st.session_state.ffmpeg_preset,
-                        crf=st.session_state.ffmpeg_crf
+                        crf=st.session_state.ffmpeg_crf,
                     ),
                     audio_codec=AudioCodecConfig(),
                     gpu_config=GPUConfig(use_gpu=st.session_state.use_gpu),
