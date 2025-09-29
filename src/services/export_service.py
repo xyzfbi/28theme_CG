@@ -171,7 +171,7 @@ class ExportService:
                 ret2, frame2 = cap2.read()
 
                 if not ret1 or frame1 is None:
-                   frame1_used = None
+                    frame1_used = None
                 else:
                     frame1_used = frame1
 
@@ -252,7 +252,7 @@ class ExportService:
                 os.rename(temp_video, output_path)
                 print("Видео создано без аудио (ffmpeg недоступен)")
                 return True
-            except:
+            except OSError:
                 return False
 
     def _get_video_codec_params(self) -> list:

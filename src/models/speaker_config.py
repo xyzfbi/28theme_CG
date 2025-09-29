@@ -36,9 +36,9 @@ class SpeakerConfig(BaseConfig):
     height: int = Field(default=300, gt=0, le=4096)
     position: Optional[PositionConfig] = Field(default=None)
     font_size: int = Field(default=24, gt=0, le=200)
-    font_color: Tuple[int, int, int] = Field(default=(255, 255, 255))
+    font_color: Tuple[int, ...] = Field(default=(255, 255, 255))
     plate_bg_color: Tuple[int, int, int, int] = Field(default=(0, 0, 0, 180))
-    plate_border_color: Tuple[int, int, int] = Field(default=(255, 255, 255))
+    plate_border_color: Tuple[int, ...] = Field(default=(255, 255, 255))
     plate_border_width: int = Field(default=2, ge=0, le=20)
     plate_padding: int = Field(default=10, ge=0, le=50)
 

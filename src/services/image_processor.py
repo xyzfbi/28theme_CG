@@ -81,10 +81,10 @@ class ImageProcessor:
                 "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
                 self.speaker_config.font_size,
             )
-        except:
+        except (OSError, IOError):
             try:
                 return ImageFont.truetype("arial.ttf", self.speaker_config.font_size)
-            except:
+            except (OSError, IOError):
                 return ImageFont.load_default()
 
     def overlay_image(

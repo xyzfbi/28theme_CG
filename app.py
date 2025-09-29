@@ -9,6 +9,7 @@ from pathlib import Path
 import tempfile
 import os
 from typing import Tuple
+import base64
 
 # Добавляем src в путь для импортов
 sys.path.insert(0, str(Path(__file__).parent / "src"))
@@ -22,7 +23,7 @@ from src.models.export_config import (
     ExportConfig,
     VideoCodecConfig,
     AudioCodecConfig,
-    GPUConfig,
+    GPUConfig
 )
 
 # Настройка страницы
@@ -117,14 +118,10 @@ def render_preview_section():
         st.session_state.speaker1_name,
         st.session_state.speaker2_name,
     ):
-
         # Создаем и показываем предпросмотр
         with st.spinner("🔄 Генерация предпросмотра..."):
             # Передаем все параметры для корректного кэширования
             preview_image = create_preview(
-                get_file_hash(st.session_state.background_file),
-                get_file_hash(st.session_state.speaker1_file),
-                get_file_hash(st.session_state.speaker2_file),
                 st.session_state.speaker1_name,
                 st.session_state.speaker2_name,
                 st.session_state.speaker_width,
@@ -159,15 +156,7 @@ def render_preview_section():
     else:
         # Показываем заглушку
         st.info("📋 Загрузите все файлы для отображения предпросмотра")
-
-        # Создаем заглушку предпросмотра
-        placeholder_image = create_placeholder_preview()
-
-        preview_placeholder.image(
-            placeholder_image,
-            caption="Предпросмотр будет здесь",
-            use_container_width=True,
-        )
+        create_placeholder_preview()
 
 
 def render_settings_section():
@@ -264,7 +253,6 @@ def render_speaker_settings():
         st.session_state.speaker_width = speaker_width
         st.session_state.speaker_height = speaker_height
         st.rerun()
-
 
 
 def render_plate_settings():
@@ -403,12 +391,6 @@ def render_export_settings():
         key="ffmpeg_crf_slider",
     )
 
-    use_gpu = st.checkbox(
-        "Использовать GPU",
-        value=st.session_state.use_gpu,
-        help="Использовать аппаратное ускорение для кодирования",
-        key="use_gpu_checkbox",
-    )
 
     # Обновляем session_state и перерисовываем при изменении разрешения
     resolution_changed = False
@@ -423,7 +405,6 @@ def render_export_settings():
     st.session_state.fps = fps
     st.session_state.ffmpeg_preset = ffmpeg_preset
     st.session_state.ffmpeg_crf = ffmpeg_crf
-    st.session_state.use_gpu = use_gpu
 
     if resolution_changed:
         st.rerun()
@@ -469,7 +450,7 @@ def validate_inputs(
     return True
 
 
-def hex_to_rgb(hex_color: str) -> Tuple[int, int, int]:
+def hex_to_rgb(hex_color: str) -> Tuple[int, ...]:
     """Конвертация HEX цвета в RGB."""
     hex_color = hex_color.lstrip("#")
     return tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
@@ -490,33 +471,21 @@ def save_uploaded_file(uploaded_file, temp_dir: str) -> str:
 
 
 def create_placeholder_preview():
-    """Создание заглушки для предпросмотра."""
-    import numpy as np
-
-    # Создаем простое изображение-заглушку
-    width, height = 800, 450
-    placeholder = np.ones((height, width, 3), dtype=np.uint8) * 64
-
-    # Добавляем текст (простые линии)
-    placeholder[height // 2 - 20 : height // 2 + 20, width // 4 : width // 4 * 3] = [
-        128,
-        128,
-        128,
-    ]
-    placeholder[height // 2 - 5 : height // 2 + 5, width // 4 : width // 4 * 3] = [
-        200,
-        200,
-        200,
-    ]
-
-    return placeholder
+    with open("public/plug.png", "rb") as image_file:
+        encoded = base64.b64encode(image_file.read()).decode()
+    st.markdown(
+        f"""
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 450px; background: rgba(0,0,0,0);">
+            <img src="data:image/png;base64,{encoded}" alt="Preview" style="height: 120px;" />
+            <div style="margin-top: 16px; color: #888; font-size: 1.1rem;">Предпросмотр будет здесь</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 @st.cache_data
 def create_preview(
-    background_file_hash,
-    speaker1_file_hash,
-    speaker2_file_hash,
     speaker1_name,
     speaker2_name,
     speaker_width,
@@ -542,7 +511,7 @@ def create_preview(
             speaker2_path = save_uploaded_file(st.session_state.speaker2_file, temp_dir)
 
             # Создаем конфигурации
-            meeting_config = MeetingConfig(
+            MeetingConfig(
                 background_path=background_path,
                 speaker1_path=speaker1_path,
                 speaker2_path=speaker2_path,

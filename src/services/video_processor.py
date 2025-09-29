@@ -14,7 +14,8 @@ class VideoProcessor:
     def __init__(self, export_config: ExportConfig):
         self.export_config = export_config
 
-    def load_video(self, video_path: str) -> cv2.VideoCapture:
+    @staticmethod
+    def load_video(video_path: str) -> cv2.VideoCapture:
         """Загрузка видео файла"""
         if not video_path:
             raise ValueError("Путь к видео не может быть пустым")
@@ -25,7 +26,8 @@ class VideoProcessor:
 
         return cap
 
-    def get_video_info(self, cap: cv2.VideoCapture) -> dict:
+    @staticmethod
+    def get_video_info(cap: cv2.VideoCapture) -> dict:
         """Получение информации о видео"""
         return {
             "fps": cap.get(cv2.CAP_PROP_FPS),
@@ -35,13 +37,15 @@ class VideoProcessor:
             "duration": cap.get(cv2.CAP_PROP_FRAME_COUNT) / cap.get(cv2.CAP_PROP_FPS),
         }
 
-    def read_frame(self, cap: cv2.VideoCapture) -> Optional[np.ndarray]:
+    @staticmethod
+    def read_frame(cap: cv2.VideoCapture) -> Optional[np.ndarray]:
         """Чтение кадра из видео"""
         ret, frame = cap.read()
         return frame if ret else None
 
+    @staticmethod
     def resize_with_aspect_ratio(
-        self, image: np.ndarray, target_width: int, target_height: int
+        image: np.ndarray, target_width: int, target_height: int
     ) -> np.ndarray:
         """Изменение размера изображения с сохранением пропорций"""
         h, w = image.shape[:2]
@@ -74,6 +78,7 @@ class VideoProcessor:
         """Вычисление выходного FPS"""
         return min(fps1, fps2, self.export_config.fps)
 
-    def calculate_max_frames(self, frame_count1: int, frame_count2: int) -> int:
+    @staticmethod
+    def calculate_max_frames(frame_count1: int, frame_count2: int) -> int:
         """Вычисление максимального количества кадров"""
         return max(frame_count1, frame_count2)
