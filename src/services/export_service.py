@@ -208,49 +208,98 @@ class ExportService:
     def _combine_video_audio(
         self, temp_video: str, mixed_audio: Optional[np.ndarray], output_path: str
     ) -> bool:
-        """Объединение видео и аудио"""
-        try:
-            if mixed_audio is not None:
-                # Сохраняем аудио во временный файл
-                temp_audio = tempfile.mktemp(suffix=".wav")
-                self.audio_processor.save_audio(mixed_audio, temp_audio)
-
-                # Команда ffmpeg
-                cmd = ["ffmpeg", "-i", temp_video, "-i", temp_audio]
-                cmd.extend(self._get_video_codec_params())
-                cmd.extend(
-                    [
-                        "-c:a",
-                        "aac",
-                        "-b:a",
-                        "128k",
-                        "-shortest",
-                        "-movflags",
-                        "+faststart",
-                        "-y",
-                        output_path,
-                    ]
+        """Объединение видео и аудио с GPU→CPU фолбэком и расширенным логированием."""
+        def run_ffmpeg(command: list, label: str) -> bool:
+            try:
+                completed = subprocess.run(
+                    command,
+                    check=True,
+                    capture_output=True,
+                    text=True,
                 )
+                if completed.stdout:
+                    print(completed.stdout)
+                return True
+            except subprocess.CalledProcessError as ex:
+                print(f"FFmpeg ошибка на этапе {label}: code={ex.returncode}")
+                if ex.stderr:
+                    print(ex.stderr)
+                return False
 
-                subprocess.run(cmd, check=True, capture_output=True)
+        # Подготовка команд для варианта с аудио и без аудио
+        if mixed_audio is not None:
+            temp_audio = tempfile.mktemp(suffix=".wav")
+            self.audio_processor.save_audio(mixed_audio, temp_audio)
+
+            # Текущие (возможно GPU) параметры
+            gpu_cmd = ["ffmpeg", "-i", temp_video, "-i", temp_audio]
+            gpu_cmd.extend(self._get_video_codec_params())
+            gpu_cmd.extend([
+                "-c:a", "aac", "-b:a", "128k",
+                "-shortest", "-movflags", "+faststart", "-y", output_path,
+            ])
+
+            if run_ffmpeg(gpu_cmd, "GPU/текущий кодек (с аудио)"):
                 os.remove(temp_audio)
                 print("Видео с аудио создано успешно")
-            else:
-                # Только видео
-                cmd = ["ffmpeg", "-i", temp_video]
-                cmd.extend(self._get_video_codec_params())
-                cmd.extend(["-movflags", "+faststart", "-y", output_path])
+                return True
 
-                subprocess.run(cmd, check=True, capture_output=True)
-                print("Видео без аудио создано")
+            # Фолбэк на CPU libx264
+            cpu_cmd = ["ffmpeg", "-i", temp_video, "-i", temp_audio]
+            cpu_cmd.extend([
+                "-c:v", "libx264",
+                "-preset", self.export_config.video_codec.preset,
+                "-crf", str(self.export_config.video_codec.crf),
+                "-b:v", self.export_config.video_codec.bitrate,
+            ])
+            cpu_cmd.extend([
+                "-c:a", "aac", "-b:a", "128k",
+                "-shortest", "-movflags", "+faststart", "-y", output_path,
+            ])
 
-            return True
+            if run_ffmpeg(cpu_cmd, "CPU libx264 (с аудио)"):
+                os.remove(temp_audio)
+                print("GPU-кодирование не удалось, использован CPU libx264. Видео с аудио создано")
+                return True
 
-        except (subprocess.CalledProcessError, FileNotFoundError) as e:
-            print(f"Ошибка ffmpeg: {e}")
+            # Как крайний случай — попытка выдать видео без аудио
+            try:
+                os.remove(temp_audio)
+            except OSError:
+                pass
             try:
                 os.rename(temp_video, output_path)
-                print("Видео создано без аудио (ffmpeg недоступен)")
+                print("FFmpeg не смог объединить аудио. Видео сохранено без аудио")
+                return True
+            except OSError:
+                return False
+
+        else:
+            # Только видео: сначала пробуем текущий (возможно GPU) кодек
+            gpu_cmd = ["ffmpeg", "-i", temp_video]
+            gpu_cmd.extend(self._get_video_codec_params())
+            gpu_cmd.extend(["-movflags", "+faststart", "-y", output_path])
+
+            if run_ffmpeg(gpu_cmd, "GPU/текущий кодек (без аудио)"):
+                print("Видео без аудио создано")
+                return True
+
+            # Фолбэк на CPU libx264
+            cpu_cmd = ["ffmpeg", "-i", temp_video,
+                       "-c:v", "libx264",
+                       "-preset", self.export_config.video_codec.preset,
+                       "-crf", str(self.export_config.video_codec.crf),
+                       "-b:v", self.export_config.video_codec.bitrate,
+                       "-movflags", "+faststart", "-y", output_path]
+
+            if run_ffmpeg(cpu_cmd, "CPU libx264 (без аудио)"):
+                print("GPU-кодирование не удалось, использован CPU libx264. Видео без аудио создано")
+                return True
+
+            # Абсолютный фолбэк: просто переименовать временное видео
+            try:
+                os.rename(temp_video, output_path)
+                print("FFmpeg не выполнился. Видео сохранено как есть (без аудио)")
                 return True
             except OSError:
                 return False
