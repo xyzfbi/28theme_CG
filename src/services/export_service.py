@@ -46,8 +46,8 @@ class ExportService:
             else:
                 print("GPU кодеки не найдены - используем CPU")
                 self.export_config.gpu_config.gpu_codec = "libx264"
-        except:
-            print("Ошибка определения GPU - используем CPU")
+        except Exception as e:
+            print("Ошибка определения GPU - используем CPU", e)
             self.export_config.gpu_config.gpu_codec = "libx264"
 
     def export_video(

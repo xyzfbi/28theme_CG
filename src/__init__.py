@@ -1,7 +1,3 @@
 """
-Video Meeting Composer - Микросервисная архитектура
-Модуль для создания экранов видеовстреч
+Video Meeting Composer - Микросервисная архитектура, основное приложение
 """
-
-__version__ = "1.0.0"
-__author__ = "Video Meeting Composer Team"

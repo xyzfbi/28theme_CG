@@ -1,6 +1,4 @@
-"""
-Базовые модели для конфигураций
-"""
+"""Базовые модели для конфигураций."""
 
 from abc import ABC, abstractmethod
 from typing import Any, Dict
@@ -8,7 +6,12 @@ from pydantic import BaseModel, ConfigDict
 
 
 class BaseConfig(BaseModel, ABC):
-    """Базовая модель конфигурации с общей функциональностью"""
+    """
+    Базовая модель конфигурации с общей функциональностью.
+
+    Все конфигурационные модели наследуются от этого класса
+    для обеспечения единообразия валидации и сериализации.
+    """
 
     model_config = ConfigDict(
         extra="forbid",  # Запрет дополнительных полей
@@ -18,14 +21,19 @@ class BaseConfig(BaseModel, ABC):
 
     @abstractmethod
     def validate_config(self) -> bool:
-        """Валидация конфигурации"""
+        """
+        Валидация конфигурации.
+
+        Returns:
+            True если конфигурация валидна, False иначе
+        """
         pass
 
     def to_dict(self) -> Dict[str, Any]:
-        """Преобразование в словарь"""
-        return self.model_dump()
+        """
+        Преобразование конфигурации в словарь.
 
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "BaseConfig":
-        """Создание из словаря"""
-        return cls(**data)
+        Returns:
+            Словарь с данными конфигурации
+        """
+        return self.model_dump()
