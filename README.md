@@ -98,3 +98,100 @@ streamlit run app.py
 ## Лицензирование
 
 Если в репозитории отсутствует файл LICENSE, считается, что проект распространяется без явной лицензии. Добавьте LICENSE по необходимости.
+
+## Файлы и директории (назначение)
+
+- `app.py`: Streamlit UI — загрузка файлов, настройки, предпросмотр и экспорт.
+- `requirements.txt`: список зависимостей Python.
+- `public/plug.png`: заглушка для области предпросмотра.
+- `README.md`: документация.
+
+Каталог `src/` — исходный код модулей:
+
+- `src/utils/logger.py`: настройка консольного логгера с форматированием.
+- `src/models/base.py`: базовая модель `BaseConfig` для унифицированной валидации Pydantic.
+- `src/models/meeting_config.py`: `MeetingConfig` — пути к файлам и имена спикеров, проверка существования.
+- `src/models/speaker_config.py`: `PositionConfig`, `SpeakerConfig` — размеры окон, параметры плашек (цвета, рамка, padding, шрифт).
+- `src/models/export_config.py`: `ExportConfig` (+ `VideoCodecConfig`, `AudioCodecConfig`, `GPUConfig`) — разрешение, FPS, кодеки, CRF, пресеты, битрейт, GPU.
+- `src/config/config_manager.py`: `ConfigManager` — создание CLI-парсера, преобразование аргументов в конфиги, базовая валидация.
+- `src/services/video_processor.py`: работа с видео (открытие, метаданные, чтение кадров, letterboxing, расчет FPS/длины).
+- `src/services/audio_processor.py`: извлечение аудио (FFmpeg), загрузка/обработка (Librosa), микширование/нормализация, сохранение WAV.
+- `src/services/image_processor.py`: загрузка изображений, создание плашек (Pillow), RGBA-наложение поверх кадра (OpenCV).
+- `src/services/composition_engine.py`: композиция кадра: фон → окна спикеров → плашки; формирование предпросмотра.
+- `src/services/export_service.py`: полный экспорт: выбор кодека (GPU/CPU), запись временного видео, смешивание аудио, мультиплексирование FFmpeg.
+
+## Архитектура: сервисы, поток данных и ключевые компоненты
+
+### Сервисы (`src/services`)
+
+- `VideoProcessor`:
+  - загрузка видео и чтение кадров (OpenCV)
+  - извлечение метаданных (FPS, размеры, количество кадров)
+  - изменение размера с сохранением пропорций (letterboxing) под окно спикера
+  - расчет итогового FPS и длины композиции
+
+- `AudioProcessor`:
+  - извлечение аудио из видео (FFmpeg → WAV)
+  - загрузка и ресемплинг до 44.1 kHz (Librosa), моно
+  - выравнивание длительности, суммирование и нормализация 2 дорожек
+  - сохранение микса (SoundFile)
+
+- `ImageProcessor`:
+  - загрузка фона (OpenCV)
+  - генерация плашек (Pillow) с учетом padding/рамки/цветов/шрифта
+  - конвертация PIL→OpenCV и альфа-наложение RGBA поверх BGR/BGRA
+
+- `CompositionEngine`:
+  - масштабирование фона до целевого разрешения экспорта
+  - вычисление позиций окон спикеров (симметрично по половинам кадра)
+  - вставка окон спикеров и плашек на кадр
+  - быстрый предпросмотр: чтение по одному кадру из каждого видео → JPEG
+
+- `ExportService`:
+  - определение доступного энкодера (NVENC/QSV/VAAPI/CPU)
+  - покадровая запись временного видео (без аудио)
+  - смешивание аудио (через `AudioProcessor`) и мультиплексирование с видео (FFmpeg)
+  - применение параметров кодека из `ExportConfig` (preset, crf, bitrate)
+
+### Поток данных (слои в микросервисном стиле)
+
+1. UI (`app.py`) получает ввод пользователя → формирует `SpeakerConfig` и `ExportConfig`.
+2. Предпросмотр: `CompositionEngine.create_preview(...)` → `ImageProcessor` (фон) + `VideoProcessor` (первые кадры) → композиция → JPEG.
+3. Экспорт: `ExportService.export_video(...)` →
+   - `VideoProcessor` открывает видео, считает FPS/длину → параметры пайплайна
+   - цикл: `CompositionEngine.compose_frame(...)` → запись кадра в временное видео
+   - `AudioProcessor` извлекает/смешивает аудио → FFmpeg мультиплексирует с видео
+4. Результат: MP4 предлагается к скачиванию в UI.
+
+Модели (`src/models`) обеспечивают строгую типизацию и валидацию, сервисы — изолированную бизнес-логику; UI — тонкий слой.
+
+### Ключевые компоненты
+
+- `Models`: `MeetingConfig`, `SpeakerConfig`, `ExportConfig` (+ codec/GPU конфиги)
+- `ConfigManager`: CLI-парсер и преобразование аргументов в модели
+- `Services`: видео/аудио/изображения + `CompositionEngine`/`ExportService` как координация пайплайна
+- `UI` (`app.py`): Streamlit-интерфейс для настройки, предпросмотра и экспорта
+
+## Docker
+
+Сборка образа:
+```bash
+docker build -t video-meeting-composer:latest .
+```
+
+Запуск (CPU):
+```bash
+docker run --rm -p 8501:8501 \
+  -v "$PWD/media":/media \
+  --name video-composer video-meeting-composer:latest
+```
+Перейдите: `http://localhost:8501`.
+
+Запуск c попыткой GPU (NVIDIA):
+```bash
+docker run --rm -p 8501:8501 \
+  --gpus all \
+  -v "$PWD/media":/media \
+  --name video-composer video-meeting-composer:latest
+```
+Примечание: базовый FFmpeg в образе рассчитан на CPU. Для NVENC/QSV/VAAPI используйте базовый образ с соответствующей сборкой FFmpeg или соберите FFmpeg самостоятельно.
