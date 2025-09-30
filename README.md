@@ -17,8 +17,25 @@
 - FFmpeg установлен и доступен в PATH
 - Системные шрифты (на Linux используется DejaVuSans-Bold)
 
-## Установка
+## Установка:
+### 1.Docker
 
+Сборка образа:
+```bash
+docker build -t video-meeting-composer:latest .
+```
+
+Запуск (CPU):
+```bash
+docker run --rm -p 8501:8501 \
+  -v "$PWD/media":/media \
+  --name video-composer video-meeting-composer:latest
+```
+Перейдите: `http://localhost:8501`.
+
+Примечание: базовый FFmpeg в образе рассчитан на CPU. Для NVENC/QSV/VAAPI используйте базовый образ с соответствующей сборкой FFmpeg или соберите FFmpeg самостоятельно.
+
+### 2. Клон репозитория и средства Python:
 ```bash
 python -m venv .venv
 source .venv/bin/activate
@@ -172,19 +189,3 @@ streamlit run app.py
 - `Services`: видео/аудио/изображения + `CompositionEngine`/`ExportService` как координация пайплайна
 - `UI` (`app.py`): Streamlit-интерфейс для настройки, предпросмотра и экспорта
 
-## Docker
-
-Сборка образа:
-```bash
-docker build -t video-meeting-composer:latest .
-```
-
-Запуск (CPU):
-```bash
-docker run --rm -p 8501:8501 \
-  -v "$PWD/media":/media \
-  --name video-composer video-meeting-composer:latest
-```
-Перейдите: `http://localhost:8501`.
-
-Примечание: базовый FFmpeg в образе рассчитан на CPU. Для NVENC/QSV/VAAPI используйте базовый образ с соответствующей сборкой FFmpeg или соберите FFmpeg самостоятельно.
