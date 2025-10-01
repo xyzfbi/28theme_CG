@@ -75,9 +75,7 @@ class ImageProcessor:
         padding = self.speaker_config.plate_padding
 
         # Ширина: текст + отступы, но не меньше минимальной ширины
-        plate_width = max(
-            text_width + padding * 2, min_width or 0
-        )
+        plate_width = max(text_width + padding * 2, min_width or 0)
         # Высота: текст + отступы, но не меньше минимальной высоты
         plate_height = max(text_height + padding * 2, 50)
 
@@ -89,7 +87,7 @@ class ImageProcessor:
         plate = Image.new(
             "RGBA",
             (plate_width, plate_height),
-            self.speaker_config.plate_bg_color, # Цвет фона из конфига
+            self.speaker_config.plate_bg_color,  # Цвет фона из конфига
         )
         draw = ImageDraw.Draw(plate)
 
@@ -164,7 +162,9 @@ class ImageProcessor:
         # Определяем область интереса (ROI) на фоновом изображении, куда будет накладываться объект
         bg_roi = result[y : y + h, x : x + w]
 
-        if overlay.shape[2] == 4:  # Если наложение имеет 4 канала (BGRA) - работаем с прозрачностью
+        if (
+            overlay.shape[2] == 4
+        ):  # Если наложение имеет 4 канала (BGRA) - работаем с прозрачностью
             # BGR часть и альфа-канал, нормализованный и умноженный на общий коэффициент alpha
             overlay_bgr = overlay[:, :, :3]
             overlay_alpha = overlay[:, :, 3] / 255.0 * alpha
@@ -175,12 +175,10 @@ class ImageProcessor:
                 bg_roi[:, :, c] = (
                     overlay_alpha * overlay_bgr[:, :, c]
                     + (1 - overlay_alpha) * bg_roi[:, :, c]
-                ).astype(np.uint8) # Преобразуем обратно в np.uint8
+                ).astype(np.uint8)  # Преобразуем обратно в np.uint8
         else:  # Если наложение имеет 3 канала (BGR) - простое смешивание
             # Используем cv2.addWeighted для смешивания с заданным весом alpha
-            bg_roi[:] = cv2.addWeighted(
-                bg_roi, 1 - alpha, overlay, alpha, 0
-            )
+            bg_roi[:] = cv2.addWeighted(bg_roi, 1 - alpha, overlay, alpha, 0)
 
         return result
 

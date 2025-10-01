@@ -188,7 +188,9 @@ class CompositionEngine:
         :return: Обновленный кадр.
         """
         # 1. Создаем плашку в формате PIL и конвертируем в BGRA numpy array
-        plate_pil = self.image_processor.create_name_plate(name, self.speaker_config.width)
+        plate_pil = self.image_processor.create_name_plate(
+            name, self.speaker_config.width
+        )
         # Используем сервис конвертации для получения BGRA массива с альфа-каналом
         plate_np = self.image_processor.convert_pil_to_cv2(plate_pil)
 
@@ -198,7 +200,6 @@ class CompositionEngine:
 
         # 3. Проверка границ: плашка должна помещаться по высоте
         if plate_y + plate_height <= self.export_config.height:
-
             # 4. Центрируем плашку по ширине окна спикера
             plate_width = plate_np.shape[1]
             plate_x = speaker_x + (self.speaker_config.width - plate_width) // 2
@@ -211,7 +212,7 @@ class CompositionEngine:
                     plate_np,
                     plate_x,
                     plate_y,
-                    alpha=1.0 # Плашка накладывается полностью
+                    alpha=1.0,  # Плашка накладывается полностью
                 )
 
         return frame
@@ -250,8 +251,10 @@ class CompositionEngine:
             if not cap1.isOpened() or not cap2.isOpened():
                 # Проверки уже выполнены внутри load_video, но лучше убедиться
                 print("Не удалось открыть один или оба видео файла.")
-                if cap1.isOpened(): cap1.release()
-                if cap2.isOpened(): cap2.release()
+                if cap1.isOpened():
+                    cap1.release()
+                if cap2.isOpened():
+                    cap2.release()
                 return False
 
             # 3. Получаем первый кадр

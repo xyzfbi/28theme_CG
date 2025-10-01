@@ -31,11 +31,17 @@ class MeetingConfig(BaseConfig):
     speaker2_path: str = Field(..., description="Путь к видео второго спикера")
 
     # Имена спикеров с ограничениями по длине (min=1, max=100)
-    speaker1_name: str = Field(..., min_length=1, max_length=100, description="Имя первого спикера")
-    speaker2_name: str = Field(..., min_length=1, max_length=100, description="Имя второго спикера")
+    speaker1_name: str = Field(
+        ..., min_length=1, max_length=100, description="Имя первого спикера"
+    )
+    speaker2_name: str = Field(
+        ..., min_length=1, max_length=100, description="Имя второго спикера"
+    )
 
     # Путь для выходного файла с дефолтным значением
-    output_path: str = Field(default="meeting_output.mp4", description="Путь для сохранения результата")
+    output_path: str = Field(
+        default="meeting_output.mp4", description="Путь для сохранения результата"
+    )
 
     def validate_config(self) -> bool:
         """

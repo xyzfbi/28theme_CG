@@ -199,7 +199,7 @@ class VideoMeetingComposerApp:
         speaker_config = SpeakerConfig(
             width=st.session_state.speaker_width,
             height=st.session_state.speaker_height,
-            position=None, # Позиция рассчитывается внутри CompositionEngine
+            position=None,  # Позиция рассчитывается внутри CompositionEngine
             font_size=dynamic_font_size,
             font_color=hex_to_rgb(st.session_state.font_color),
             plate_bg_color=hex_to_rgba(st.session_state.plate_bg_color),

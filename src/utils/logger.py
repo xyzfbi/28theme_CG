@@ -6,9 +6,9 @@
 import logging
 import sys
 
+
 def setup_logger(
-    name: str = "video_meeting_composer",
-    level: int = logging.INFO
+    name: str = "video_meeting_composer", level: int = logging.INFO
 ) -> logging.Logger:
     """
     Настраивает и возвращает объект логгера (logging.Logger) с заданным именем и уровнем.

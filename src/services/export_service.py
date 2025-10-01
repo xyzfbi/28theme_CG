@@ -209,6 +209,7 @@ class ExportService:
         self, temp_video: str, mixed_audio: Optional[np.ndarray], output_path: str
     ) -> bool:
         """Объединение видео и аудио с GPU→CPU фолбэком и расширенным логированием."""
+
         def run_ffmpeg(command: list, label: str) -> bool:
             try:
                 completed = subprocess.run(
@@ -234,10 +235,19 @@ class ExportService:
             # Текущие (возможно GPU) параметры
             gpu_cmd = ["ffmpeg", "-i", temp_video, "-i", temp_audio]
             gpu_cmd.extend(self._get_video_codec_params())
-            gpu_cmd.extend([
-                "-c:a", "aac", "-b:a", "128k",
-                "-shortest", "-movflags", "+faststart", "-y", output_path,
-            ])
+            gpu_cmd.extend(
+                [
+                    "-c:a",
+                    "aac",
+                    "-b:a",
+                    "128k",
+                    "-shortest",
+                    "-movflags",
+                    "+faststart",
+                    "-y",
+                    output_path,
+                ]
+            )
 
             if run_ffmpeg(gpu_cmd, "GPU/текущий кодек (с аудио)"):
                 os.remove(temp_audio)
@@ -246,20 +256,37 @@ class ExportService:
 
             # Фолбэк на CPU libx264
             cpu_cmd = ["ffmpeg", "-i", temp_video, "-i", temp_audio]
-            cpu_cmd.extend([
-                "-c:v", "libx264",
-                "-preset", self.export_config.video_codec.preset,
-                "-crf", str(self.export_config.video_codec.crf),
-                "-b:v", self.export_config.video_codec.bitrate,
-            ])
-            cpu_cmd.extend([
-                "-c:a", "aac", "-b:a", "128k",
-                "-shortest", "-movflags", "+faststart", "-y", output_path,
-            ])
+            cpu_cmd.extend(
+                [
+                    "-c:v",
+                    "libx264",
+                    "-preset",
+                    self.export_config.video_codec.preset,
+                    "-crf",
+                    str(self.export_config.video_codec.crf),
+                    "-b:v",
+                    self.export_config.video_codec.bitrate,
+                ]
+            )
+            cpu_cmd.extend(
+                [
+                    "-c:a",
+                    "aac",
+                    "-b:a",
+                    "128k",
+                    "-shortest",
+                    "-movflags",
+                    "+faststart",
+                    "-y",
+                    output_path,
+                ]
+            )
 
             if run_ffmpeg(cpu_cmd, "CPU libx264 (с аудио)"):
                 os.remove(temp_audio)
-                print("GPU-кодирование не удалось, использован CPU libx264. Видео с аудио создано")
+                print(
+                    "GPU-кодирование не удалось, использован CPU libx264. Видео с аудио создано"
+                )
                 return True
 
             # Как крайний случай — попытка выдать видео без аудио
@@ -285,15 +312,28 @@ class ExportService:
                 return True
 
             # Фолбэк на CPU libx264
-            cpu_cmd = ["ffmpeg", "-i", temp_video,
-                       "-c:v", "libx264",
-                       "-preset", self.export_config.video_codec.preset,
-                       "-crf", str(self.export_config.video_codec.crf),
-                       "-b:v", self.export_config.video_codec.bitrate,
-                       "-movflags", "+faststart", "-y", output_path]
+            cpu_cmd = [
+                "ffmpeg",
+                "-i",
+                temp_video,
+                "-c:v",
+                "libx264",
+                "-preset",
+                self.export_config.video_codec.preset,
+                "-crf",
+                str(self.export_config.video_codec.crf),
+                "-b:v",
+                self.export_config.video_codec.bitrate,
+                "-movflags",
+                "+faststart",
+                "-y",
+                output_path,
+            ]
 
             if run_ffmpeg(cpu_cmd, "CPU libx264 (без аудио)"):
-                print("GPU-кодирование не удалось, использован CPU libx264. Видео без аудио создано")
+                print(
+                    "GPU-кодирование не удалось, использован CPU libx264. Видео без аудио создано"
+                )
                 return True
 
             # Абсолютный фолбэк: просто переименовать временное видео

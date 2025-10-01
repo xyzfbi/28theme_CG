@@ -87,7 +87,7 @@ class AudioProcessor:
 
     @staticmethod
     def mix_audio(
-            audio1: Optional[np.ndarray],
+        audio1: Optional[np.ndarray],
         audio2: Optional[np.ndarray],
         sr: int,
         max_duration: float,
@@ -116,9 +116,9 @@ class AudioProcessor:
             padding_needed = max(0, target_length - len(audio1))
 
             # Дополняем нулями и обрезаем до target_length (если вдруг длиннее)
-            audio1_padded = np.pad(
-                audio1, (0, padding_needed), "constant"
-            )[:target_length]
+            audio1_padded = np.pad(audio1, (0, padding_needed), "constant")[
+                :target_length
+            ]
 
             # Смешивание (простое сложение амплитуд)
             mixed_audio += audio1_padded
@@ -129,9 +129,9 @@ class AudioProcessor:
             padding_needed = max(0, target_length - len(audio2))
 
             # Дополняем нулями и обрезаем до target_length
-            audio2_padded = np.pad(
-                audio2, (0, padding_needed), "constant"
-            )[:target_length]
+            audio2_padded = np.pad(audio2, (0, padding_needed), "constant")[
+                :target_length
+            ]
 
             # Смешивание (сложение амплитуд)
             mixed_audio += audio2_padded

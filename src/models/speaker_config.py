@@ -69,24 +69,42 @@ class SpeakerConfig(BaseConfig):
     """
 
     # Размеры окна спикера (используется для ресайза видео). Должны быть > 0.
-    width: int = Field(default=400, gt=0, le=4096, description="Ширина окна спикера (пиксели)")
-    height: int = Field(default=300, gt=0, le=4096, description="Высота окна спикера (пиксели)")
+    width: int = Field(
+        default=400, gt=0, le=4096, description="Ширина окна спикера (пиксели)"
+    )
+    height: int = Field(
+        default=300, gt=0, le=4096, description="Высота окна спикера (пиксели)"
+    )
     # Позиция: Optional, так как может быть автоматической
-    position: Optional[PositionConfig] = Field(default=None, description="Позиция окна (None = автоматическое центрирование)")
+    position: Optional[PositionConfig] = Field(
+        default=None, description="Позиция окна (None = автоматическое центрирование)"
+    )
 
     # Параметры текста и плашки
-    font_size: int = Field(default=24, gt=0, le=200, description="Размер шрифта на плашке с именем")
-    font_color: Tuple[int, ...] = Field(default=(255, 255, 255), description="Цвет текста (R, G, B)")
+    font_size: int = Field(
+        default=24, gt=0, le=200, description="Размер шрифта на плашке с именем"
+    )
+    font_color: Tuple[int, ...] = Field(
+        default=(255, 255, 255), description="Цвет текста (R, G, B)"
+    )
 
     # Параметры фона плашки (RGBA). 180 - это значение альфа-канала для полупрозрачности.
-    plate_bg_color: Tuple[int, ...] = Field(default=(0, 0, 0, 180), description="Цвет фона плашки (R, G, B, A)")
+    plate_bg_color: Tuple[int, ...] = Field(
+        default=(0, 0, 0, 180), description="Цвет фона плашки (R, G, B, A)"
+    )
 
     # Параметры рамки
-    plate_border_color: Tuple[int, ...] = Field(default=(255, 255, 255), description="Цвет рамки плашки (R, G, B)")
-    plate_border_width: int = Field(default=2, ge=0, le=20, description="Толщина рамки плашки (пиксели)")
+    plate_border_color: Tuple[int, ...] = Field(
+        default=(255, 255, 255), description="Цвет рамки плашки (R, G, B)"
+    )
+    plate_border_width: int = Field(
+        default=2, ge=0, le=20, description="Толщина рамки плашки (пиксели)"
+    )
 
     # Отступы
-    plate_padding: int = Field(default=10, ge=0, le=50, description="Внутренние отступы плашки (пиксели)")
+    plate_padding: int = Field(
+        default=10, ge=0, le=50, description="Внутренние отступы плашки (пиксели)"
+    )
 
     def validate_config(self) -> bool:
         """
@@ -105,11 +123,15 @@ class SpeakerConfig(BaseConfig):
                 return False
 
             # 3. Проверка параметров плашки
-            if self.font_size <= 0 or self.plate_padding < 0 or self.plate_border_width < 0:
+            if (
+                self.font_size <= 0
+                or self.plate_padding < 0
+                or self.plate_border_width < 0
+            ):
                 return False
 
             return True
 
-        except Exception as e:
+        except Exception:
             # Возвращаем False, если Pydantic или другие проверки выбросили исключение
             return False
