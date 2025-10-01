@@ -2,6 +2,48 @@
 
 Интерактивное приложение на Streamlit для композиции видеовстреч: объединяет фоновое изображение и два видео со спикерами, добавляет плашки с именами, смешивает аудио и экспортирует финальный ролик с использованием FFmpeg (с автоопределением GPU-ускорения).
 
+## Содержание
+
+- [Быстрый старт (Docker)](#быстрый-старт-docker)
+- [Возможности](#возможности)
+- [Требования](#требования)
+- [Установка из исходников (клонирование)](#установка-из-исходников-клонирование)
+- [Запуск (Streamlit)](#запуск-streamlit)
+- [Использование из кода (скрипт)](#использование-из-кода-скрипт)
+- [Структура проекта](#структура-проекта)
+- [Переменные окружения](#переменные-окружения)
+- [Примечания по кодекам и GPU](#примечания-по-кодекам-и-gpu)
+- [Советы и устранение неполадок](#советы-и-устранение-неполадок)
+- [Docker](#docker)
+  - [Docker Compose](#docker-compose)
+  - [GitLab Container Registry](#gitlab-container-registry)
+  - [Назначение Docker-файлов](#назначение-docker-файлов)
+- [CI/CD (GitLab)](#cicd-gitlab)
+- [Лицензирование](#лицензирование)
+
+## Быстрый старт (Docker)
+
+```bash
+# Клонируйте репозиторий и перейдите в директорию проекта
+git clone <repo-url> && cd <repo-dir>
+
+# Рекомендуемый способ: Docker Compose
+docker compose up --build -d
+
+# Откройте приложение в браузере
+# http://localhost:8501
+```
+
+Без Compose:
+```bash
+docker build -t video-meeting-composer:latest .
+docker run --rm -p 8501:8501 \
+  -v "$PWD/media":/media \
+  --name video-composer video-meeting-composer:latest
+```
+
+Примечание: директория `./media` монтируется внутрь контейнера в `/media` для обмена файлами.
+
 ## Возможности
 
 - Сборка сцены: фон + 2 окна спикеров
@@ -17,7 +59,11 @@
 - FFmpeg установлен и доступен в PATH
 - Системные шрифты (на Linux используется DejaVuSans-Bold)
 
-## Установка
+## Переменные окружения
+
+- `PORT` — порт, на котором запускается Streamlit внутри контейнера (по умолчанию `8501`). В Compose уже проброшен на хост.
+
+## Установка из исходников (клонирование)
 
 ```bash
 python -m venv .venv
@@ -94,6 +140,8 @@ streamlit run app.py
 - Нет шрифта для плашек: на Linux поставьте `fonts-dejavu-core` (используется `DejaVuSans-Bold`), на Windows/макОS шрифт берется из системы или применяется дефолтный.
 - Ошибки OpenCV при показе изображений: проверьте корректность путей к файлам и поддержку кодеков вашей сборкой OpenCV/FFmpeg.
 - GPU кодек не определяется: драйвер/библиотеки могут быть не установлены или не поддерживаться FFmpeg; переключитесь на CPU (снимите флажок «Использовать GPU» в UI).
+- Docker Desktop не видит контейнер: проверьте `docker context show`; используйте `desktop-linux/docker-desktop` и не смешивайте `sudo docker` с обычным `docker`.
+- Порт 8501 занят: остановите другой контейнер/процесс или поменяйте хост‑порт в `docker-compose.yml`, например `"8502:8501"`.
 
 ## Лицензирование
 
@@ -188,3 +236,69 @@ docker run --rm -p 8501:8501 \
 Перейдите: `http://localhost:8501`.
 
 Примечание: базовый FFmpeg в образе рассчитан на CPU. Для NVENC/QSV/VAAPI используйте базовый образ с соответствующей сборкой FFmpeg или соберите FFmpeg самостоятельно.
+
+### Docker Compose
+
+Сборка и запуск через Compose:
+```bash
+docker compose up --build -d
+```
+
+Остановить и удалить контейнеры:
+```bash
+docker compose down
+```
+
+Том/маунт `./media` будет доступен внутри контейнера по пути `/media`.
+
+### Назначение Docker-файлов
+
+- `Dockerfile`: рецепт сборки собственного образа приложения (Python base, системные либы `ffmpeg`, шрифты, OpenCV deps, установка Python-зависимостей, `HEALTHCHECK`, запуск Streamlit).
+- `docker-compose.yml`: декларация запуска сервиса: публикация порта, монтирование каталога `./media`, переменные окружения, healthcheck. Может собирать образ из `Dockerfile` или использовать готовый образ из реестра.
+
+### GitLab Container Registry
+
+Замените переменные `CI_REGISTRY_IMAGE` и `CI_COMMIT_SHORT_SHA` на ваши значения реестра/тега.
+
+Сборка и пуш в реестр GitLab:
+```bash
+docker build -t registry.gitlab.com/<group>/<project>/video-meeting-composer:latest .
+docker push registry.gitlab.com/<group>/<project>/video-meeting-composer:latest
+```
+
+Пример `docker-compose.yml`, использующий удалённый образ:
+```yaml
+services:
+  app:
+    image: registry.gitlab.com/<group>/<project>/video-meeting-composer:latest
+    container_name: video-composer
+    ports:
+      - "8501:8501"
+    environment:
+      - PORT=8501
+    volumes:
+      - ./media:/media
+```
+
+## CI/CD (GitLab)
+
+Минимальный `.gitlab-ci.yml` для сборки и публикации образа в реестр GitLab:
+
+```yaml
+stages: [build]
+
+variables:
+  IMAGE_TAG: "$CI_REGISTRY_IMAGE:latest"
+
+build_image:
+  stage: build
+  image: docker:24
+  services:
+    - docker:24-dind
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - docker build -t "$IMAGE_TAG" .
+    - docker push "$IMAGE_TAG"
+  only:
+    - main
+```

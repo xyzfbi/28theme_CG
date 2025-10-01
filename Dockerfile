@@ -8,6 +8,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 # System deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget \
     ffmpeg \
     fonts-dejavu-core \
     libglib2.0-0 \
