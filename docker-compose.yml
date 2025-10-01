@@ -1,0 +1,15 @@
+version: "3.8"
+
+services:
+  app:
+    build: .
+    image: video-meeting-composer:latest
+    container_name: video-composer
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./media:/media
+    environment:
+      - PORT=8501
+    # Для NVIDIA GPU (если требуется и настроено):
+    # gpus: all
