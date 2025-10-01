@@ -188,3 +188,41 @@ docker run --rm -p 8501:8501 \
 Перейдите: `http://localhost:8501`.
 
 Примечание: базовый FFmpeg в образе рассчитан на CPU. Для NVENC/QSV/VAAPI используйте базовый образ с соответствующей сборкой FFmpeg или соберите FFmpeg самостоятельно.
+
+### Docker Compose
+
+Сборка и запуск через Compose:
+```bash
+docker compose up --build -d
+```
+
+Остановить и удалить контейнеры:
+```bash
+docker compose down
+```
+
+Том/маунт `./media` будет доступен внутри контейнера по пути `/media`.
+
+### GitLab Container Registry
+
+Замените переменные `CI_REGISTRY_IMAGE` и `CI_COMMIT_SHORT_SHA` на ваши значения реестра/тега.
+
+Сборка и пуш в реестр GitLab:
+```bash
+docker build -t registry.gitlab.com/<group>/<project>/video-meeting-composer:latest .
+docker push registry.gitlab.com/<group>/<project>/video-meeting-composer:latest
+```
+
+Пример `docker-compose.yml`, использующий удалённый образ:
+```yaml
+services:
+  app:
+    image: registry.gitlab.com/<group>/<project>/video-meeting-composer:latest
+    container_name: video-composer
+    ports:
+      - "8501:8501"
+    environment:
+      - PORT=8501
+    volumes:
+      - ./media:/media
+```
