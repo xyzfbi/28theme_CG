@@ -64,6 +64,13 @@
           <label>Размер шрифта
             <input type="number" name="manual_font_size" min="12" value="24" required />
           </label>
+          <label>Шрифт подписей
+            <select name="font_family">
+              <option value="DejaVuSans-Bold" selected>DejaVu Sans Bold</option>
+              <option value="DejaVuSans">DejaVu Sans</option>
+              <option value="Arial">Arial</option>
+            </select>
+          </label>
           <label>Цвет текста
             <input type="color" name="font_color" value="#FFFFFF" />
           </label>
@@ -124,6 +131,14 @@
         <div class="form-actions">
           <button id="btn-preview" type="button" class="btn primary">Сгенерировать предпросмотр</button>
           <button id="btn-export" type="button" class="btn">Создать видео</button>
+        </div>
+
+        <div id="export-progress" class="progress hidden">
+          <div class="progress-label">Рендеринг видео… <span id="progress-value">0</span>%</div>
+          <div class="bar"><div id="bar-fill" class="fill" style="width:0%"></div></div>
+          <div class="progress-actions">
+            <button id="btn-download-video" class="btn" disabled>📥 Скачать видео</button>
+          </div>
         </div>
       </form>
     </section>

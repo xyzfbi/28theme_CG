@@ -84,6 +84,10 @@ class SpeakerConfig(BaseConfig):
     font_size: int = Field(
         default=24, gt=0, le=200, description="Размер шрифта на плашке с именем"
     )
+    # Имя семейства шрифта, доступные варианты выбираются на стороне сервера (например, DejaVuSans-Bold, DejaVuSans, Arial)
+    font_family: str = Field(
+        default="DejaVuSans-Bold", description="Семейство шрифта для подписи"
+    )
     font_color: Tuple[int, ...] = Field(
         default=(255, 255, 255), description="Цвет текста (R, G, B)"
     )

@@ -2,6 +2,8 @@ import os
 import tempfile
 from pathlib import Path
 from typing import Tuple
+import threading
+import uuid
 
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
@@ -53,6 +55,8 @@ def build_configs(
     speaker_width: int,
     speaker_height: int,
     manual_font_size: int,
+    # new: font family name
+    font_family: str,
     font_color: str,
     plate_bg_color: str,
     plate_border_color: str,
@@ -79,6 +83,7 @@ def build_configs(
         height=limited_speaker_height,
         position=None,
         font_size=dynamic_font_size,
+        font_family=font_family,
         font_color=hex_to_rgb(font_color),
         plate_bg_color=hex_to_rgba(plate_bg_color),
         plate_border_color=hex_to_rgb(plate_border_color),
@@ -105,6 +110,9 @@ static_dir = Path(__file__).parent / "static"
 public_dir = Path(__file__).parent / "public"
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 app.mount("/public", StaticFiles(directory=str(public_dir)), name="public")
+
+jobs_lock = threading.Lock()
+jobs: dict[str, dict] = {}
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -135,6 +143,7 @@ async def generate_preview(
     plate_border_color: str = Form(...),
     plate_border_width: int = Form(...),
     plate_padding: int = Form(...),
+    font_family: str = Form("DejaVuSans-Bold"),
     output_width: int = Form(...),
     output_height: int = Form(...),
     fps: int = Form(...),
@@ -218,57 +227,100 @@ async def export_video(
     use_gpu: bool = Form(...),
 ):
     try:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            background_path = os.path.join(temp_dir, background.filename)
-            speaker1_path = os.path.join(temp_dir, speaker1.filename)
-            speaker2_path = os.path.join(temp_dir, speaker2.filename)
+        # Persist files in a per-job temp dir, because export runs in background
+        job_id = str(uuid.uuid4())
+        temp_dir = tempfile.mkdtemp(prefix=f"export_{job_id}_")
 
-            with open(background_path, "wb") as f:
-                f.write(await background.read())
-            with open(speaker1_path, "wb") as f:
-                f.write(await speaker1.read())
-            with open(speaker2_path, "wb") as f:
-                f.write(await speaker2.read())
+        background_path = os.path.join(temp_dir, background.filename)
+        speaker1_path = os.path.join(temp_dir, speaker1.filename)
+        speaker2_path = os.path.join(temp_dir, speaker2.filename)
 
-            speaker_config, export_config = build_configs(
-                speaker_width,
-                speaker_height,
-                manual_font_size,
-                font_color,
-                plate_bg_color,
-                plate_border_color,
-                plate_border_width,
-                plate_padding,
-                output_width,
-                output_height,
-                fps,
-                ffmpeg_preset,
-                ffmpeg_crf,
-                use_gpu,
-            )
+        with open(background_path, "wb") as f:
+            f.write(await background.read())
+        with open(speaker1_path, "wb") as f:
+            f.write(await speaker1.read())
+        with open(speaker2_path, "wb") as f:
+            f.write(await speaker2.read())
 
-            output_file_path = os.path.join(temp_dir, "meeting_output.mp4")
-            meeting_config = MeetingConfig(
-                background_path=background_path,
-                speaker1_path=speaker1_path,
-                speaker2_path=speaker2_path,
-                speaker1_name=speaker1_name,
-                speaker2_name=speaker2_name,
-                output_path=output_file_path,
-            )
+        speaker_config, export_config = build_configs(
+            speaker_width,
+            speaker_height,
+            manual_font_size,
+            font_family,
+            font_color,
+            plate_bg_color,
+            plate_border_color,
+            plate_border_width,
+            plate_padding,
+            output_width,
+            output_height,
+            fps,
+            ffmpeg_preset,
+            ffmpeg_crf,
+            use_gpu,
+        )
 
-            engine = CompositionEngine(speaker_config, export_config)
-            exporter = ExportService(export_config)
+        output_file_path = os.path.join(temp_dir, "meeting_output.mp4")
+        meeting_config = MeetingConfig(
+            background_path=background_path,
+            speaker1_path=speaker1_path,
+            speaker2_path=speaker2_path,
+            speaker1_name=speaker1_name,
+            speaker2_name=speaker2_name,
+            output_path=output_file_path,
+        )
 
-            success = exporter.export_video(meeting_config, engine)
-            if not success:
-                return JSONResponse({"error": "Failed to export video"}, status_code=500)
+        engine = CompositionEngine(speaker_config, export_config)
+        exporter = ExportService(export_config)
 
-            # Read bytes before TemporaryDirectory is cleaned up
-            with open(output_file_path, "rb") as f:
-                data = f.read()
-            return Response(content=data, media_type="video/mp4", headers={"Content-Disposition": "attachment; filename=meeting_output.mp4"})
+        with jobs_lock:
+            jobs[job_id] = {"progress": 0.0, "status": "running", "path": output_file_path, "dir": temp_dir}
+
+        def run_export():
+            try:
+                def progress_cb(p: float):
+                    with jobs_lock:
+                        if job_id in jobs:
+                            jobs[job_id]["progress"] = float(max(0.0, min(100.0, p)))
+
+                ok = exporter.export_video(meeting_config, engine, progress_cb)
+                with jobs_lock:
+                    if job_id in jobs:
+                        jobs[job_id]["status"] = "done" if ok else "error"
+                        if ok:
+                            jobs[job_id]["progress"] = 100.0
+            except Exception as ex:
+                logger.error(f"Job {job_id} failed: {ex}")
+                with jobs_lock:
+                    if job_id in jobs:
+                        jobs[job_id]["status"] = "error"
+
+        threading.Thread(target=run_export, daemon=True).start()
+        return JSONResponse({"job_id": job_id})
     except Exception as e:
         logger.error(f"Export error: {e}")
         return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.get("/api/export/status/{job_id}")
+def export_status(job_id: str):
+    with jobs_lock:
+        job = jobs.get(job_id)
+        if not job:
+            return JSONResponse({"error": "not found"}, status_code=404)
+        return {"status": job["status"], "progress": job["progress"]}
+
+
+@app.get("/api/export/download/{job_id}")
+def export_download(job_id: str):
+    with jobs_lock:
+        job = jobs.get(job_id)
+        if not job:
+            return JSONResponse({"error": "not found"}, status_code=404)
+        if job["status"] != "done":
+            return JSONResponse({"error": "not ready"}, status_code=400)
+        path = job["path"]
+    if not os.path.exists(path):
+        return JSONResponse({"error": "file missing"}, status_code=404)
+    return FileResponse(path, media_type="video/mp4", filename="meeting_output.mp4")
 

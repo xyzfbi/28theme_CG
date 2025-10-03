@@ -3,6 +3,11 @@ const previewArea = document.getElementById('preview-area');
 const btnPreview = document.getElementById('btn-preview');
 const btnExport = document.getElementById('btn-export');
 const btnDownloadPreview = document.getElementById('btn-download-preview');
+const progressBox = document.getElementById('export-progress');
+const progressValue = document.getElementById('progress-value');
+const barFill = document.getElementById('bar-fill');
+const btnDownloadVideo = document.getElementById('btn-download-video');
+let currentJobId = null;
 const widthSelect = document.querySelector('[name="output_width"]');
 const heightSelect = document.querySelector('[name="output_height"]');
 const speakerWidthInput = document.querySelector('[name="speaker_width"]');
@@ -22,7 +27,7 @@ function formToFormData(formEl) {
 
   const fields = [
     'speaker1_name','speaker2_name','speaker_width','speaker_height','manual_font_size',
-    'font_color','plate_bg_color','plate_border_color','plate_border_width','plate_padding',
+    'font_family','font_color','plate_bg_color','plate_border_color','plate_border_width','plate_padding',
     'output_width','output_height','fps','ffmpeg_preset','ffmpeg_crf'
   ];
   for (const name of fields) {
@@ -92,15 +97,52 @@ btnExport.addEventListener('click', async () => {
   try {
     const fd = formToFormData(form);
     setLoading(btnExport, true);
-    const res = await callApi('/api/export', fd);
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'meeting_output.mp4'; a.click();
+    // Start export job
+    const startRes = await callApi('/api/export', fd);
+    const { job_id } = await startRes.json();
+    currentJobId = job_id;
+    progressBox.classList.remove('hidden');
+    btnDownloadVideo.disabled = true;
+    await pollProgress(job_id);
   } catch (e) {
     alert(e.message || e);
   } finally {
     setLoading(btnExport, false);
   }
 });
+
+async function pollProgress(jobId) {
+  const poll = async () => {
+    const r = await fetch(`/api/export/status/${jobId}`);
+    if (!r.ok) throw new Error('status error');
+    const { status, progress } = await r.json();
+    progressValue.textContent = String(Math.floor(progress));
+    barFill.style.width = `${Math.floor(progress)}%`;
+    if (status === 'done') {
+      btnDownloadVideo.disabled = false;
+      btnDownloadVideo.onclick = async () => {
+        const dl = await fetch(`/api/export/download/${jobId}`);
+        if (!dl.ok) { alert('Файл ещё не готов'); return; }
+        const blob = await dl.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'meeting_output.mp4'; a.click();
+      };
+      return true;
+    }
+    if (status === 'error') { alert('Ошибка рендера'); return true; }
+    return false;
+  };
+
+  // Simple interval polling
+  const interval = setInterval(async () => {
+    try {
+      const done = await poll();
+      if (done) clearInterval(interval);
+    } catch (e) {
+      clearInterval(interval);
+      console.error(e);
+    }
+  }, 1000);
+}
 

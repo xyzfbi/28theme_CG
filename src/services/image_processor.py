@@ -117,19 +117,29 @@ class ImageProcessor:
 
         :return: Объект ImageFont.FreeTypeFont. В случае неудачи загружается стандартный шрифт.
         """
-        try:
-            # Попытка загрузить системный шрифт Linux (DejaVuSans-Bold)
-            return ImageFont.truetype(
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-                self.speaker_config.font_size,
-            )
-        except (OSError, IOError):
+        # Попытка подобрать файл шрифта исходя из font_family
+        preferred = self.speaker_config.font_family.lower()
+        candidates = []
+        if "dejavu" in preferred and "bold" in preferred:
+            candidates.append("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")
+        if "dejavu" in preferred and "sans" in preferred:
+            candidates.append("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
+        if "arial" in preferred:
+            candidates.append("arial.ttf")
+        # Общие запасные варианты
+        candidates.extend([
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            "arial.ttf",
+        ])
+
+        for path in candidates:
             try:
-                # Попытка загрузить шрифт Arial (часто используется в Windows)
-                return ImageFont.truetype("arial.ttf", self.speaker_config.font_size)
+                return ImageFont.truetype(path, self.speaker_config.font_size)
             except (OSError, IOError):
-                # Если все попытки провалились, загружаем шрифт по умолчанию
-                return ImageFont.load_default()
+                continue
+
+        return ImageFont.load_default()
 
     @staticmethod
     def overlay_image(
