@@ -65,12 +65,18 @@ def build_configs(
     ffmpeg_crf: int,
     use_gpu: bool,
 ) -> Tuple[SpeakerConfig, ExportConfig]:
-    dynamic_font_size = clamp_font_size(speaker_height, manual_font_size)
+    # Enforce speaker size limits: width <= 46% of output width, height <= 55% of output height
+    max_speaker_width = max(1, int(output_width * 0.46))
+    max_speaker_height = max(1, int(output_height * 0.55))
+    limited_speaker_width = min(speaker_width, max_speaker_width)
+    limited_speaker_height = min(speaker_height, max_speaker_height)
+
+    dynamic_font_size = clamp_font_size(limited_speaker_height, manual_font_size)
     dynamic_plate_padding = clamp_padding(output_height, plate_padding)
 
     speaker_config = SpeakerConfig(
-        width=speaker_width,
-        height=speaker_height,
+        width=limited_speaker_width,
+        height=limited_speaker_height,
         position=None,
         font_size=dynamic_font_size,
         font_color=hex_to_rgb(font_color),

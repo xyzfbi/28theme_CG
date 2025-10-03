@@ -3,6 +3,10 @@ const previewArea = document.getElementById('preview-area');
 const btnPreview = document.getElementById('btn-preview');
 const btnExport = document.getElementById('btn-export');
 const btnDownloadPreview = document.getElementById('btn-download-preview');
+const widthSelect = document.querySelector('[name="output_width"]');
+const heightSelect = document.querySelector('[name="output_height"]');
+const speakerWidthInput = document.querySelector('[name="speaker_width"]');
+const speakerHeightInput = document.querySelector('[name="speaker_height"]');
 
 function formToFormData(formEl) {
   const data = new FormData();
@@ -30,6 +34,21 @@ function formToFormData(formEl) {
   data.append('use_gpu', useGpuEl.checked ? 'true' : 'false');
   return data;
 }
+
+function applySpeakerBounds() {
+  const outW = parseInt(widthSelect.value, 10);
+  const outH = parseInt(heightSelect.value, 10);
+  const maxW = Math.max(1, Math.floor(outW * 0.46));
+  const maxH = Math.max(1, Math.floor(outH * 0.55));
+  speakerWidthInput.max = String(maxW);
+  speakerHeightInput.max = String(maxH);
+  if (parseInt(speakerWidthInput.value || '0', 10) > maxW) speakerWidthInput.value = String(maxW);
+  if (parseInt(speakerHeightInput.value || '0', 10) > maxH) speakerHeightInput.value = String(maxH);
+}
+
+widthSelect.addEventListener('change', applySpeakerBounds);
+heightSelect.addEventListener('change', applySpeakerBounds);
+applySpeakerBounds();
 
 async function callApi(endpoint, formData) {
   const res = await fetch(endpoint, { method: 'POST', body: formData });
