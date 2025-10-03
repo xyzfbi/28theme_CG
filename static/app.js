@@ -12,6 +12,10 @@ const widthSelect = document.querySelector('[name="output_width"]');
 const heightSelect = document.querySelector('[name="output_height"]');
 const speakerWidthInput = document.querySelector('[name="speaker_width"]');
 const speakerHeightInput = document.querySelector('[name="speaker_height"]');
+const speakerWidthDisp = document.getElementById('speaker_width_disp');
+const speakerHeightDisp = document.getElementById('speaker_height_disp');
+const platePaddingInput = document.querySelector('[name="plate_padding"]');
+const platePaddingDisp = document.getElementById('plate_padding_disp');
 
 function formToFormData(formEl) {
   const data = new FormData();
@@ -49,11 +53,31 @@ function applySpeakerBounds() {
   speakerHeightInput.max = String(maxH);
   if (parseInt(speakerWidthInput.value || '0', 10) > maxW) speakerWidthInput.value = String(maxW);
   if (parseInt(speakerHeightInput.value || '0', 10) > maxH) speakerHeightInput.value = String(maxH);
+  speakerWidthDisp.textContent = speakerWidthInput.value;
+  speakerHeightDisp.textContent = speakerHeightInput.value;
 }
 
 widthSelect.addEventListener('change', applySpeakerBounds);
 heightSelect.addEventListener('change', applySpeakerBounds);
 applySpeakerBounds();
+
+speakerWidthInput.addEventListener('input', () => { speakerWidthDisp.textContent = speakerWidthInput.value; });
+speakerHeightInput.addEventListener('input', () => { speakerHeightDisp.textContent = speakerHeightInput.value; });
+platePaddingInput.addEventListener('input', () => { platePaddingDisp.textContent = platePaddingInput.value; });
+
+// Drag & Drop for dropzones
+document.querySelectorAll('.dropzone').forEach(dz => {
+  const input = dz.querySelector('input[type="file"]');
+  dz.addEventListener('click', () => input.click());
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('dragover');
+    if (e.dataTransfer.files && e.dataTransfer.files.length) {
+      input.files = e.dataTransfer.files;
+    }
+  });
+});
 
 async function callApi(endpoint, formData) {
   const res = await fetch(endpoint, { method: 'POST', body: formData });

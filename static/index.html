@@ -36,26 +36,34 @@
       <form id="composer-form">
         <fieldset>
           <legend>⬆️ Загрузка файлов</legend>
-          <label>Фон (jpg/png/bmp)
-            <input type="file" name="background" accept=".jpg,.jpeg,.png,.bmp" required />
-          </label>
-          <label>Видео спикера 1 (mp4/avi/mov/mkv)
-            <input type="file" name="speaker1" accept=".mp4,.avi,.mov,.mkv" required />
-          </label>
-          <input type="text" name="speaker1_name" placeholder="Имя первого спикера" required />
-          <label>Видео спикера 2 (mp4/avi/mov/mkv)
-            <input type="file" name="speaker2" accept=".mp4,.avi,.mov,.mkv" required />
-          </label>
-          <input type="text" name="speaker2_name" placeholder="Имя второго спикера" required />
+          <div class="upload-grid">
+            <div class="dropzone" data-target="background">
+              <div class="dz-title">Фон (jpg/png/bmp)</div>
+              <div class="dz-label">Перетащите файл сюда или кликните</div>
+              <input class="file-input" type="file" name="background" accept=".jpg,.jpeg,.png,.bmp" required />
+            </div>
+            <div class="dropzone" data-target="speaker1">
+              <div class="dz-title">Видео спикера 1</div>
+              <div class="dz-label">Перетащите файл сюда или кликните</div>
+              <input class="file-input" type="file" name="speaker1" accept=".mp4,.avi,.mov,.mkv" required />
+              <input type="text" name="speaker1_name" placeholder="Имя первого спикера" required />
+            </div>
+            <div class="dropzone" data-target="speaker2">
+              <div class="dz-title">Видео спикера 2</div>
+              <div class="dz-label">Перетащите файл сюда или кликните</div>
+              <input class="file-input" type="file" name="speaker2" accept=".mp4,.avi,.mov,.mkv" required />
+              <input type="text" name="speaker2_name" placeholder="Имя второго спикера" required />
+            </div>
+          </div>
         </fieldset>
 
         <fieldset>
           <legend>🎤 Спикеры</legend>
-          <label>Ширина окна
-            <input type="number" name="speaker_width" min="150" value="400" required />
+          <label>Ширина окна: <span id="speaker_width_disp">400</span> px
+            <input type="range" name="speaker_width" min="150" value="400" required />
           </label>
-          <label>Высота окна
-            <input type="number" name="speaker_height" min="100" value="300" required />
+          <label>Высота окна: <span id="speaker_height_disp">300</span> px
+            <input type="range" name="speaker_height" min="100" value="300" required />
           </label>
         </fieldset>
 
@@ -83,8 +91,8 @@
           <label>Толщина рамки
             <input type="number" name="plate_border_width" min="0" max="10" value="2" />
           </label>
-          <label>Отступы (padding)
-            <input type="number" name="plate_padding" min="2" max="50" value="30" />
+          <label>Отступы (padding): <span id="plate_padding_disp">30</span> px
+            <input type="range" name="plate_padding" min="2" max="50" value="30" />
           </label>
         </fieldset>
 
