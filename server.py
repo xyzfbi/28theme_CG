@@ -215,6 +215,7 @@ async def export_video(
     speaker_width: int = Form(...),
     speaker_height: int = Form(...),
     manual_font_size: int = Form(...),
+    font_family: str = Form("DejaVuSans-Bold"),
     font_color: str = Form(...),
     plate_bg_color: str = Form(...),
     plate_border_color: str = Form(...),
