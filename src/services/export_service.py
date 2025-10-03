@@ -5,6 +5,7 @@
 import os
 import tempfile
 import subprocess
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import cv2
 import numpy as np
 from typing import Optional
@@ -87,10 +88,29 @@ class ExportService:
                 f"Создание видео: {max_frames} кадров, {output_fps} FPS, {max_duration:.2f} сек"
             )
 
-            # Извлекаем аудио
+            # Извлекаем аудио параллельно (FFmpeg I/O + CPU, GIL не блокирует)
             print("Извлечение аудио...")
-            audio1, _ = self.audio_processor.extract_audio(meeting_config.speaker1_path)
-            audio2, _ = self.audio_processor.extract_audio(meeting_config.speaker2_path)
+            audio1 = None
+            audio2 = None
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                future_to_label = {
+                    executor.submit(
+                        self.audio_processor.extract_audio, meeting_config.speaker1_path
+                    ): "audio1",
+                    executor.submit(
+                        self.audio_processor.extract_audio, meeting_config.speaker2_path
+                    ): "audio2",
+                }
+                for future in as_completed(future_to_label):
+                    label = future_to_label[future]
+                    try:
+                        audio_arr, _sr = future.result()
+                        if label == "audio1":
+                            audio1 = audio_arr
+                        else:
+                            audio2 = audio_arr
+                    except Exception as ex:
+                        print(f"Ошибка извлечения {label}: {ex}")
 
             # Смешиваем аудио
             mixed_audio = None
@@ -233,7 +253,7 @@ class ExportService:
             self.audio_processor.save_audio(mixed_audio, temp_audio)
 
             # Текущие (возможно GPU) параметры
-            gpu_cmd = ["ffmpeg", "-i", temp_video, "-i", temp_audio]
+            gpu_cmd = ["ffmpeg", "-threads", "0", "-i", temp_video, "-i", temp_audio]
             gpu_cmd.extend(self._get_video_codec_params())
             gpu_cmd.extend(
                 [
@@ -255,7 +275,7 @@ class ExportService:
                 return True
 
             # Фолбэк на CPU libx264
-            cpu_cmd = ["ffmpeg", "-i", temp_video, "-i", temp_audio]
+            cpu_cmd = ["ffmpeg", "-threads", "0", "-i", temp_video, "-i", temp_audio]
             cpu_cmd.extend(
                 [
                     "-c:v",
@@ -303,7 +323,7 @@ class ExportService:
 
         else:
             # Только видео: сначала пробуем текущий (возможно GPU) кодек
-            gpu_cmd = ["ffmpeg", "-i", temp_video]
+            gpu_cmd = ["ffmpeg", "-threads", "0", "-i", temp_video]
             gpu_cmd.extend(self._get_video_codec_params())
             gpu_cmd.extend(["-movflags", "+faststart", "-y", output_path])
 
@@ -314,6 +334,8 @@ class ExportService:
             # Фолбэк на CPU libx264
             cpu_cmd = [
                 "ffmpeg",
+                "-threads",
+                "0",
                 "-i",
                 temp_video,
                 "-c:v",

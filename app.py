@@ -5,6 +5,7 @@ import tempfile
 import os
 from typing import Tuple, Optional
 import base64
+import cv2
 
 # Добавляем src в путь для импортов, чтобы модули находились корректно.
 sys.path.insert(0, str(Path(__file__).parent / "src"))
@@ -24,6 +25,18 @@ from src.models.export_config import (
 
 # Инициализация логгера
 logger = setup_logger()
+
+# Включаем оптимизации и многопоточность OpenCV для загрузки/масштабирования
+try:
+    # Устанавливаем число потоков OpenCV равным числу доступных CPU
+    cpu_threads = getattr(cv2, "getNumberOfCPUs", lambda: None)()
+    if isinstance(cpu_threads, int) and cpu_threads > 0:
+        cv2.setNumThreads(cpu_threads)
+    # Включаем внутренние оптимизации OpenCV
+    cv2.setUseOptimized(True)
+except Exception:
+    # Если сборка OpenCV без этих APIs — тихо игнорируем
+    pass
 
 
 # Вспомогательные функции (оставляем их вне класса, т.к. они утилитарны)
