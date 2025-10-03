@@ -1,0 +1,57 @@
+:root {
+  --bg: #0b0f14;
+  --panel: #121822;
+  --text: #e6eef8;
+  --muted: #8aa0b6;
+  --primary: #4f83ff;
+  --border: #223045;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.container { width: min(1200px, 100% - 32px); margin: 0 auto; }
+
+.app-header { background: linear-gradient(180deg, #0f1520, #0b0f14); border-bottom: 1px solid var(--border); }
+.app-header h1 { margin: 0; padding: 16px 0; font-weight: 600; }
+
+.main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; padding: 24px 0; }
+
+@media (max-width: 1000px) {
+  .main-grid { grid-template-columns: 1fr; }
+}
+
+section { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+section h2 { margin-top: 0; font-weight: 600; }
+
+.preview-area { aspect-ratio: 16/9; background: #0a0f15; border: 1px dashed var(--border); border-radius: 10px; display: grid; place-items: center; overflow: hidden; }
+.preview-area img { max-width: 100%; height: auto; display: block; }
+.placeholder { display: grid; place-items: center; color: var(--muted); text-align: center; }
+.placeholder img { width: 96px; opacity: 0.7; }
+
+.actions { margin-top: 12px; display: flex; gap: 12px; }
+
+form fieldset { border: 1px solid var(--border); border-radius: 10px; margin: 12px 0; padding: 12px; }
+form legend { color: var(--muted); padding: 0 6px; }
+form label { display: grid; gap: 6px; margin: 8px 0; font-size: 14px; color: var(--muted); }
+form input, form select { background: #0b121b; color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+form input[type="color"] { padding: 2px; height: 40px; }
+
+.form-actions { display: flex; gap: 12px; margin-top: 8px; }
+
+.btn { appearance: none; border: 1px solid var(--border); background: #0c1524; color: var(--text); padding: 10px 14px; border-radius: 10px; cursor: pointer; }
+.btn:hover { border-color: #2a3a55; }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn.primary { background: var(--primary); border-color: #2a5aff; }
+.btn.primary:hover { filter: brightness(1.05); }
+
+.switch { display: flex; align-items: center; gap: 8px; }
+
+.app-footer { border-top: 1px solid var(--border); color: var(--muted); padding: 16px 0; }
+
