@@ -21,7 +21,7 @@ body {
 .app-header { background: linear-gradient(180deg, #0f1520, #0b0f14); border-bottom: 1px solid var(--border); }
 .app-header h1 { margin: 0; padding: 16px 0; font-weight: 600; }
 
-.main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; padding: 24px 0; }
+.main-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 24px; padding: 24px 0; width: 100%; }
 
 @media (max-width: 1000px) {
   .main-grid { grid-template-columns: 1fr; }

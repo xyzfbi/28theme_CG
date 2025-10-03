@@ -39,18 +39,15 @@
           <div class="upload-grid">
             <div class="dropzone" data-target="background">
               <div class="dz-title">Фон (jpg/png/bmp)</div>
-              <div class="dz-label">Перетащите файл сюда или кликните</div>
               <input class="file-input" type="file" name="background" accept=".jpg,.jpeg,.png,.bmp" required />
             </div>
             <div class="dropzone" data-target="speaker1">
               <div class="dz-title">Видео спикера 1</div>
-              <div class="dz-label">Перетащите файл сюда или кликните</div>
               <input class="file-input" type="file" name="speaker1" accept=".mp4,.avi,.mov,.mkv" required />
               <input type="text" name="speaker1_name" placeholder="Имя первого спикера" required />
             </div>
             <div class="dropzone" data-target="speaker2">
               <div class="dz-title">Видео спикера 2</div>
-              <div class="dz-label">Перетащите файл сюда или кликните</div>
               <input class="file-input" type="file" name="speaker2" accept=".mp4,.avi,.mov,.mkv" required />
               <input type="text" name="speaker2_name" placeholder="Имя второго спикера" required />
             </div>
@@ -69,14 +66,19 @@
 
         <fieldset>
           <legend>🎨 Плашки</legend>
-          <label>Размер шрифта
-            <input type="number" name="manual_font_size" min="12" value="24" required />
+          <label>Размер шрифта: <span id="manual_font_size_disp">24</span> px
+            <input type="range" name="manual_font_size" min="12" value="24" required />
           </label>
           <label>Шрифт подписей
             <select name="font_family">
               <option value="DejaVuSans-Bold" selected>DejaVu Sans Bold</option>
               <option value="DejaVuSans">DejaVu Sans</option>
               <option value="Arial">Arial</option>
+              <option value="Roboto">Roboto</option>
+              <option value="Inter">Inter</option>
+              <option value="OpenSans">Open Sans</option>
+              <option value="Montserrat">Montserrat</option>
+              <option value="Lato">Lato</option>
             </select>
           </label>
           <label>Цвет текста
@@ -88,8 +90,8 @@
           <label>Цвет рамки
             <input type="color" name="plate_border_color" value="#FFFFFF" />
           </label>
-          <label>Толщина рамки
-            <input type="number" name="plate_border_width" min="0" max="10" value="2" />
+          <label>Толщина рамки: <span id="plate_border_width_disp">2</span> px
+            <input type="range" name="plate_border_width" min="0" max="10" value="2" />
           </label>
           <label>Отступы (padding): <span id="plate_padding_disp">30</span> px
             <input type="range" name="plate_padding" min="2" max="50" value="30" />
@@ -130,10 +132,7 @@
           <label>CRF
             <input type="number" name="ffmpeg_crf" min="18" max="35" value="23" />
           </label>
-          <label class="switch">
-            <input type="checkbox" name="use_gpu" checked />
-            <span>Использовать GPU</span>
-          </label>
+          <!-- GPU всегда включен на бэкенде -->
         </fieldset>
 
         <div class="form-actions">

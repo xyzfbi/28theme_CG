@@ -36,11 +36,11 @@ function formToFormData(formEl) {
   ];
   for (const name of fields) {
     const el = formEl.querySelector(`[name="${name}"]`);
-    data.append(name, el.type === 'checkbox' ? (el.checked ? 'true' : 'false') : el.value);
+    data.append(name, el.value);
   }
 
-  const useGpuEl = formEl.querySelector('[name="use_gpu"]');
-  data.append('use_gpu', useGpuEl.checked ? 'true' : 'false');
+  // GPU: всегда включено
+  data.append('use_gpu', 'true');
   return data;
 }
 
@@ -116,6 +116,26 @@ btnPreview.addEventListener('click', async () => {
     setLoading(btnPreview, false);
   }
 });
+
+// Авто-превью на изменения
+function setupAutoPreview() {
+  const trigger = () => {
+    if (btnPreview.disabled) return; // простая защита от спама
+    btnPreview.click();
+  };
+  // изменения конфигурации
+  form.querySelectorAll('input, select').forEach(el => {
+    el.addEventListener('change', trigger);
+    if (el.type === 'range' || el.type === 'color' || el.type === 'text' || el.type === 'number') {
+      el.addEventListener('input', () => { clearTimeout(el._t); el._t = setTimeout(trigger, 400); });
+    }
+  });
+  // файлы — показываем превью после дропа/выбора
+  form.querySelectorAll('input[type="file"]').forEach(el => {
+    el.addEventListener('change', trigger);
+  });
+}
+setupAutoPreview();
 
 btnExport.addEventListener('click', async () => {
   try {
