@@ -328,7 +328,13 @@ async def export_video(
         exporter = ExportService(export_config)
 
         with jobs_lock:
-            jobs[job_id] = {"progress": 0.0, "status": "running", "path": output_file_path, "dir": temp_dir}
+            jobs[job_id] = {
+                "progress": 0.0,
+                "status": "running",
+                "path": output_file_path,
+                "dir": temp_dir,
+                "error": None,
+            }
 
         def run_export():
             try:
@@ -348,6 +354,7 @@ async def export_video(
                 with jobs_lock:
                     if job_id in jobs:
                         jobs[job_id]["status"] = "error"
+                        jobs[job_id]["error"] = str(ex)
 
         threading.Thread(target=run_export, daemon=True).start()
         return JSONResponse({"job_id": job_id})
@@ -362,7 +369,7 @@ def export_status(job_id: str):
         job = jobs.get(job_id)
         if not job:
             return JSONResponse({"error": "not found"}, status_code=404)
-        return {"status": job["status"], "progress": job["progress"]}
+        return {"status": job["status"], "progress": job["progress"], "error": job.get("error")}
 
 
 @app.get("/api/export/download/{job_id}")

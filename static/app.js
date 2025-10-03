@@ -136,6 +136,7 @@ setupAutoPreview();
 
 btnExport.addEventListener('click', async () => {
   try {
+    if (!hasAllFiles()) { alert('Загрузите фон и оба видео прежде чем экспортировать'); return; }
     const fd = formToFormData(form);
     setLoading(btnExport, true);
     // Start export job
@@ -156,7 +157,7 @@ async function pollProgress(jobId) {
   const poll = async () => {
     const r = await fetch(`/api/export/status/${jobId}`);
     if (!r.ok) throw new Error('status error');
-    const { status, progress } = await r.json();
+    const { status, progress, error } = await r.json();
     progressValue.textContent = String(Math.floor(progress));
     barFill.style.width = `${Math.floor(progress)}%`;
     if (status === 'done') {
@@ -171,7 +172,7 @@ async function pollProgress(jobId) {
       };
       return true;
     }
-    if (status === 'error') { alert('Ошибка рендера'); return true; }
+    if (status === 'error') { alert('Ошибка рендера: ' + (error || '')); return true; }
     return false;
   };
 
