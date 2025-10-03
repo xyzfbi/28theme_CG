@@ -51,6 +51,49 @@ def clamp_padding(output_height: int, requested_padding: int) -> int:
     return max(padding_min, min(pydantic_padding_limit, requested_padding))
 
 
+def scale_configs_for_preview(
+    speaker_config: SpeakerConfig,
+    export_config: ExportConfig,
+    max_preview_width: int = 960,
+    max_preview_height: int = 540,
+) -> Tuple[SpeakerConfig, ExportConfig]:
+    """
+    Масштабирует конфиги для лёгкого предпросмотра, сохраняя пропорции и внешний вид.
+    Снижает итоговое разрешение и соответствующим образом уменьшает размеры элементов.
+    """
+    ow, oh = export_config.width, export_config.height
+    scale = min(max_preview_width / max(1, ow), max_preview_height / max(1, oh), 1.0)
+    if scale >= 0.9999:
+        return speaker_config, export_config
+
+    new_w = max(1, int(round(ow * scale)))
+    new_h = max(1, int(round(oh * scale)))
+
+    scaled_export = ExportConfig(
+        width=new_w,
+        height=new_h,
+        fps=export_config.fps,
+        video_codec=export_config.video_codec,
+        audio_codec=export_config.audio_codec,
+        gpu_config=export_config.gpu_config,
+    )
+
+    scaled_speaker = SpeakerConfig(
+        width=max(1, int(round(speaker_config.width * scale))),
+        height=max(1, int(round(speaker_config.height * scale))),
+        position=None,
+        font_size=max(8, int(round(speaker_config.font_size * scale))),
+        font_family=speaker_config.font_family,
+        font_color=speaker_config.font_color,
+        plate_bg_color=speaker_config.plate_bg_color,
+        plate_border_color=speaker_config.plate_border_color,
+        plate_border_width=max(0, int(round(speaker_config.plate_border_width * scale))),
+        plate_padding=max(1, int(round(speaker_config.plate_padding * scale))),
+    )
+
+    return scaled_speaker, scaled_export
+
+
 def build_configs(
     speaker_width: int,
     speaker_height: int,
@@ -152,6 +195,8 @@ async def generate_preview(
     use_gpu: bool = Form(...),
 ):
     try:
+        # Always enable GPU in backend regardless of form value
+        use_gpu = True
         with tempfile.TemporaryDirectory() as temp_dir:
             background_path = os.path.join(temp_dir, background.filename)
             speaker1_path = os.path.join(temp_dir, speaker1.filename)
@@ -180,6 +225,11 @@ async def generate_preview(
                 ffmpeg_preset,
                 ffmpeg_crf,
                 use_gpu,
+            )
+
+            # Масштабируем конфигурации для быстрого предпросмотра
+            speaker_config, export_config = scale_configs_for_preview(
+                speaker_config, export_config
             )
 
             engine = CompositionEngine(speaker_config, export_config)
@@ -229,6 +279,8 @@ async def export_video(
     use_gpu: bool = Form(...),
 ):
     try:
+        # Always enable GPU in backend regardless of form value
+        use_gpu = True
         # Persist files in a per-job temp dir, because export runs in background
         job_id = str(uuid.uuid4())
         temp_dir = tempfile.mkdtemp(prefix=f"export_{job_id}_")

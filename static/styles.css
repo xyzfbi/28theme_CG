@@ -16,7 +16,7 @@ body {
   color: var(--text);
 }
 
-.container { width: min(1200px, 100% - 32px); margin: 0 auto; }
+.container { width: 100%; padding: 0 16px; margin: 0 auto; }
 
 .app-header { background: linear-gradient(180deg, #0f1520, #0b0f14); border-bottom: 1px solid var(--border); }
 .app-header h1 { margin: 0; padding: 16px 0; font-weight: 600; }

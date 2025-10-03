@@ -7,6 +7,7 @@
 import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
+from pathlib import Path
 from typing import Optional
 from ..models.speaker_config import SpeakerConfig
 
@@ -117,21 +118,31 @@ class ImageProcessor:
 
         :return: Объект ImageFont.FreeTypeFont. В случае неудачи загружается стандартный шрифт.
         """
-        # Попытка подобрать файл шрифта исходя из font_family
-        preferred = self.speaker_config.font_family.lower()
+        # Сначала ищем в локальной папке проекта fonts/
+        base_dir = Path(__file__).resolve().parents[2]
+        local_fonts = base_dir / "fonts"
+        preferred = self.speaker_config.font_family
         candidates = []
-        if "dejavu" in preferred and "bold" in preferred:
+
+        if local_fonts.exists():
+            # Ищем точное совпадение по имени (без расширения)
+            for ext in (".ttf", ".otf", ".ttc"):
+                p = local_fonts / f"{preferred}{ext}"
+                if p.exists():
+                    candidates.append(str(p))
+            # Если точного нет — подхватим любые
+            for p in local_fonts.glob("**/*.*"):
+                if p.suffix.lower() in (".ttf", ".otf", ".ttc"):
+                    candidates.append(str(p))
+
+        # Системные запасные варианты
+        low = preferred.lower()
+        if "dejavu" in low and "bold" in low:
             candidates.append("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")
-        if "dejavu" in preferred and "sans" in preferred:
+        if "dejavu" in low and "sans" in low:
             candidates.append("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
-        if "arial" in preferred:
+        if "arial" in low:
             candidates.append("arial.ttf")
-        # Общие запасные варианты
-        candidates.extend([
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-            "arial.ttf",
-        ])
 
         for path in candidates:
             try:
