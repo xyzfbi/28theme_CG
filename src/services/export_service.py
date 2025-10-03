@@ -7,7 +7,7 @@ import tempfile
 import subprocess
 import cv2
 import numpy as np
-from typing import Optional
+from typing import Optional, Callable
 from ..models.export_config import ExportConfig
 from ..models.meeting_config import MeetingConfig
 from .composition_engine import CompositionEngine
@@ -51,10 +51,15 @@ class ExportService:
             self.export_config.gpu_config.gpu_codec = "libx264"
 
     def export_video(
-        self, meeting_config: MeetingConfig, composition_engine: CompositionEngine
+        self,
+        meeting_config: MeetingConfig,
+        composition_engine: CompositionEngine,
+        progress_cb: Optional[Callable[[float], None]] = None,
     ) -> bool:
         """Экспорт готового видео"""
         try:
+            if progress_cb:
+                progress_cb(2.0)
             # Загружаем фон
             background = composition_engine.image_processor.load_image(
                 meeting_config.background_path
@@ -91,6 +96,8 @@ class ExportService:
             print("Извлечение аудио...")
             audio1, _ = self.audio_processor.extract_audio(meeting_config.speaker1_path)
             audio2, _ = self.audio_processor.extract_audio(meeting_config.speaker2_path)
+            if progress_cb:
+                progress_cb(10.0)
 
             # Смешиваем аудио
             mixed_audio = None
@@ -111,6 +118,7 @@ class ExportService:
                 output_fps,
                 temp_video,
                 meeting_config,
+                progress_cb,
             )
 
             if not success:
@@ -118,6 +126,8 @@ class ExportService:
 
             # Объединяем видео и аудио
             print("Объединение видео и аудио...")
+            if progress_cb:
+                progress_cb(92.0)
             success = self._combine_video_audio(
                 temp_video, mixed_audio, meeting_config.output_path
             )
@@ -132,6 +142,8 @@ class ExportService:
 
             if success:
                 print(f"Готово: {meeting_config.output_path}")
+                if progress_cb:
+                    progress_cb(100.0)
                 return True
             else:
                 return False
@@ -150,6 +162,7 @@ class ExportService:
         output_fps: float,
         temp_video: str,
         meeting_config: MeetingConfig,
+        progress_cb: Optional[Callable[[float], None]] = None,
     ) -> bool:
         """Создание кадров видео"""
         try:
@@ -192,9 +205,10 @@ class ExportService:
                 frame_idx += 1
 
                 # Прогресс
-                if frame_idx % 100 == 0:
-                    progress = (frame_idx / max_frames) * 100
-                    print(f"Прогресс: {progress:.1f}%")
+                if progress_cb and max_frames > 0:
+                    # Отдаём прогресс этапа кадров в диапазоне 10..90%
+                    frames_part = 10.0 + (frame_idx / max_frames) * 80.0
+                    progress_cb(min(frames_part, 90.0))
 
             # Имена спикеров больше не хранятся в конфигурации
 

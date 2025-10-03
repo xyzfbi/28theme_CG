@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Video Meeting Composer</title>
+  <link rel="icon" href="/public/plug.png" />
+  <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="app-header">
+    <div class="container">
+      <h1>🎥 Video Meeting Composer</h1>
+    </div>
+  </header>
+
+  <main class="container main-grid">
+    <section class="preview">
+      <h2>🔍 Предпросмотр</h2>
+      <div id="preview-area" class="preview-area">
+        <div class="placeholder">
+          <img src="/public/plug.png" alt="Preview" />
+          <div>Предпросмотр будет здесь</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="btn-download-preview" class="btn" disabled>📥 Скачать предпросмотр</button>
+      </div>
+    </section>
+
+    <section class="settings">
+      <h2>⚙️ Настройки</h2>
+      <form id="composer-form">
+        <fieldset>
+          <legend>⬆️ Загрузка файлов</legend>
+          <label>Фон (jpg/png/bmp)
+            <input type="file" name="background" accept=".jpg,.jpeg,.png,.bmp" required />
+          </label>
+          <label>Видео спикера 1 (mp4/avi/mov/mkv)
+            <input type="file" name="speaker1" accept=".mp4,.avi,.mov,.mkv" required />
+          </label>
+          <label>Имя первого спикера
+            <input type="text" name="speaker1_name" placeholder="Имя первого спикера" required />
+          </label>
+          <label>Видео спикера 2 (mp4/avi/mov/mkv)
+            <input type="file" name="speaker2" accept=".mp4,.avi,.mov,.mkv" required />
+          </label>
+          <label>Имя второго спикера
+            <input type="text" name="speaker2_name" placeholder="Имя второго спикера" required />
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend>🎤 Спикеры</legend>
+          <label>Ширина окна: <span id="speaker_width_disp">400</span> px
+            <input type="range" name="speaker_width" min="150" value="400" required />
+          </label>
+          <label>Высота окна: <span id="speaker_height_disp">300</span> px
+            <input type="range" name="speaker_height" min="100" value="300" required />
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend>🎨 Плашки</legend>
+          <label>Размер шрифта: <span id="manual_font_size_disp">24</span> px
+            <input type="range" name="manual_font_size" min="12" value="24" required />
+          </label>
+          <label>Шрифт подписей
+            <select name="font_family">
+              <option value="DejaVuSans-Bold" selected>DejaVu Sans Bold</option>
+              <option value="DejaVuSans">DejaVu Sans</option>
+              <option value="Arial">Arial</option>
+              <option value="Roboto">Roboto</option>
+              <option value="Inter">Inter</option>
+              <option value="OpenSans">Open Sans</option>
+              <option value="Montserrat">Montserrat</option>
+              <option value="Lato">Lato</option>
+            </select>
+          </label>
+          <label>Цвет текста
+            <input type="color" name="font_color" value="#FFFFFF" />
+          </label>
+          <label>Цвет фона плашки
+            <input type="color" name="plate_bg_color" value="#000000" />
+          </label>
+          <label>Цвет рамки
+            <input type="color" name="plate_border_color" value="#FFFFFF" />
+          </label>
+          <label>Толщина рамки: <span id="plate_border_width_disp">2</span> px
+            <input type="range" name="plate_border_width" min="0" max="10" value="2" />
+          </label>
+          <label>Отступы (padding): <span id="plate_padding_disp">30</span> px
+            <input type="range" name="plate_padding" min="2" max="50" value="30" />
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend>📐 Экспорт</legend>
+          <label>Ширина
+            <select name="output_width">
+              <option value="1280">1280</option>
+              <option value="1920" selected>1920</option>
+              <option value="2560">2560</option>
+              <option value="3840">3840</option>
+            </select>
+          </label>
+          <label>Высота
+            <select name="output_height">
+              <option value="720">720</option>
+              <option value="1080" selected>1080</option>
+              <option value="1440">1440</option>
+              <option value="2160">2160</option>
+            </select>
+          </label>
+          <label>FPS
+            <input type="number" name="fps" min="24" max="120" step="6" value="30" />
+          </label>
+          <label>Пресет FFmpeg
+            <select name="ffmpeg_preset">
+              <option>ultrafast</option>
+              <option>superfast</option>
+              <option>veryfast</option>
+              <option>faster</option>
+              <option selected>fast</option>
+              <option>medium</option>
+            </select>
+          </label>
+          <label>CRF
+            <input type="number" name="ffmpeg_crf" min="18" max="35" value="23" />
+          </label>
+          <!-- GPU всегда включен на бэкенде -->
+        </fieldset>
+
+        <div class="form-actions">
+          <button id="btn-preview" type="button" class="btn primary">Сгенерировать предпросмотр</button>
+          <button id="btn-export" type="button" class="btn">Создать видео</button>
+        </div>
+
+        <div id="export-progress" class="progress hidden">
+          <div class="progress-label">Рендеринг видео… <span id="progress-value">0</span>%</div>
+          <div class="bar"><div id="bar-fill" class="fill" style="width:0%"></div></div>
+          <div class="progress-actions">
+            <button id="btn-download-video" class="btn" disabled>📥 Скачать видео</button>
+          </div>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <div class="container">MIT © Video Meeting Composer</div>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
+
