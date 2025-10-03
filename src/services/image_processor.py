@@ -7,9 +7,19 @@
 import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
-from typing import Optional
+from typing import Optional, Tuple
 from ..models.speaker_config import SpeakerConfig
+import matplotlib.font_manager as fm
 
+def get_text_size(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.ImageFont) -> tuple[float, float]:
+    """
+    Возвращает ширину и высоту текста для плашки.
+    Работает с Pillow >= 10.
+    """
+    bbox = draw.textbbox((0, 0), text, font=font)
+    width = bbox[2] - bbox[0]
+    height = bbox[3] - bbox[1]
+    return width, height
 
 class ImageProcessor:
     """
@@ -49,86 +59,89 @@ class ImageProcessor:
             return None
 
     def create_name_plate(
-        self, name: str, min_width: Optional[int] = None
+            self,
+            name: str,
+            width: int,
+            font_size: int = 24,
+            font_color: Tuple[int, int, int] = (255, 255, 255),
+            bg_color: Tuple[int, int, int, int] = (0, 0, 0, 180),
+            border_color: Tuple[int, int, int] = (255, 255, 255),
+            border_width: int = 2,
+            padding: int = 10,
+            font_family: str = "Arial",
     ) -> Image.Image:
         """
-        Создает графическую плашку (name plate) с заданным именем, используя PIL.
-        Размер плашки автоматически подстраивается под текст, с учетом минимальной ширины.
+        Создает плашку с именем спикера.
 
-        :param name: Текст, который должен быть отображен на плашке (имя спикера).
-        :param min_width: Минимальная ширина плашки. Если текст шире, используется его ширина.
-        :return: Объект PIL.Image с готовой плашкой в формате RGBA.
+        :param name: Текст для плашки
+        :param width: Ширина плашки (обычно ширина окна спикера)
+        :param font_size: Размер шрифта
+        :param font_color: Цвет текста (RGB)
+        :param bg_color: Цвет фона плашки (RGBA)
+        :param border_color: Цвет рамки (RGB)
+        :param border_width: Толщина рамки
+        :param padding: Внутренние отступы вокруг текста
+        :param font_family: Название шрифта
+        :return: PIL.Image с плашкой
         """
-        # 1. Загрузка шрифта
-        font = self._load_font()
+        # 1. Загружаем шрифт
+        try:
+            font_path = fm.findSystemFonts(fontpaths=None, fontext="ttf")
+            font_paths = {ImageFont.truetype(f).getname()[0]: f for f in font_path}
+            path = font_paths.get(font_family, None)
+            if path:
+                font = ImageFont.truetype(path, font_size)
+            else:
+                font = ImageFont.load_default()
+        except Exception:
+            font = ImageFont.load_default()
 
-        # 2. Измерение текста (требуется временный холст для получения размеров)
-        temp_img = Image.new("RGB", (1, 1))
-        draw = ImageDraw.Draw(temp_img)
+        # 2. Вычисляем размер текста
+        dummy_img = Image.new("RGBA", (width, 100))
+        draw = ImageDraw.Draw(dummy_img)
+        text_w, text_h = get_text_size(draw, name, font)
 
-        # Получаем ограничивающую рамку текста
-        bbox = draw.textbbox((0, 0), name, font=font)
-        text_width = bbox[2] - bbox[0]
-        text_height = bbox[3] - bbox[1]
+        plate_width = width
+        plate_height = text_h + 2 * padding
 
-        # 3. Вычисляем размеры плашки
-        padding = self.speaker_config.plate_padding
-
-        # Ширина: текст + отступы, но не меньше минимальной ширины
-        plate_width = max(text_width + padding * 2, min_width or 0)
-        # Высота: текст + отступы, но не меньше минимальной высоты
-        plate_height = max(text_height + padding * 2, 50)
-
-        # Приведение к целому типу для PIL
-        plate_width = int(plate_width)
-        plate_height = int(plate_height)
-
-        # 4. Создание плашки (RGBA для поддержки прозрачности)
-        plate = Image.new(
-            "RGBA",
-            (plate_width, plate_height),
-            self.speaker_config.plate_bg_color,  # Цвет фона из конфига
-        )
+        # 3. Создаем прозрачное изображение плашки
+        plate = Image.new("RGBA", (plate_width, plate_height), (0, 0, 0, 0))
         draw = ImageDraw.Draw(plate)
 
-        # 5. Центрирование текста
-        # Вычисляем смещение текста, чтобы он был по центру плашки
-        text_x = (plate_width - text_width) // 2
-        text_y = (plate_height - text_height) // 2
-
-        # 6. Рисуем рамку
+        # 4. Рисуем фон
         draw.rectangle(
-            [0, 0, plate_width - 1, plate_height - 1],
-            outline=self.speaker_config.plate_border_color,
-            width=self.speaker_config.plate_border_width,
+            [0, 0, plate_width, plate_height],
+            fill=bg_color,
+            outline=border_color,
+            width=border_width,
         )
 
-        # 7. Рисуем сам текст
-        draw.text(
-            (text_x, text_y), name, font=font, fill=self.speaker_config.font_color
-        )
+        # 5. Рисуем текст по центру
+        text_x = (plate_width - text_w) // 2
+        text_y = (plate_height - text_h) // 2
+        draw.text((text_x, text_y), name, font=font, fill=font_color)
 
         return plate
 
     def _load_font(self) -> ImageFont.FreeTypeFont:
         """
-        Загрузка шрифта с диска по указанным путям.
-        Предусмотрены несколько fallback-путей для повышения совместимости между ОС.
-
-        :return: Объект ImageFont.FreeTypeFont. В случае неудачи загружается стандартный шрифт.
+        Загрузка шрифта по имени или пути из SpeakerConfig.
+        Если не удалось — fallback на стандартный.
         """
+        font_path_or_name = getattr(self.speaker_config, "font_family", None)
+        font_size = getattr(self.speaker_config, "font_size", 24)
+
         try:
-            # Попытка загрузить системный шрифт Linux (DejaVuSans-Bold)
-            return ImageFont.truetype(
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-                self.speaker_config.font_size,
-            )
+            if font_path_or_name:
+                # Если передан путь к ttf
+                return ImageFont.truetype(font_path_or_name, font_size)
+            else:
+                # Попытка загрузить системный шрифт по имени
+                return ImageFont.truetype("DejaVuSans-Bold.ttf", font_size)
         except (OSError, IOError):
             try:
-                # Попытка загрузить шрифт Arial (часто используется в Windows)
-                return ImageFont.truetype("arial.ttf", self.speaker_config.font_size)
+                return ImageFont.truetype("arial.ttf", font_size)
             except (OSError, IOError):
-                # Если все попытки провалились, загружаем шрифт по умолчанию
                 return ImageFont.load_default()
 
     @staticmethod

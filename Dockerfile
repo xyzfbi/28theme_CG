@@ -9,9 +9,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     ffmpeg \
-    fonts-dejavu-core \
     libglib2.0-0 \
     libgl1 \
+    # ✅ набор шрифтов
+    fonts-dejavu-core \
+    fonts-dejavu-extra \
+    fonts-liberation \
+    fonts-freefont-ttf \
+    fonts-roboto-unhinted \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

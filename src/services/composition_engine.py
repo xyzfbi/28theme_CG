@@ -187,32 +187,42 @@ class CompositionEngine:
         :param name: Имя, которое будет отображено на плашке.
         :return: Обновленный кадр.
         """
-        # 1. Создаем плашку в формате PIL и конвертируем в BGRA numpy array
+        sc = self.speaker_config  # Чтобы не писать каждый раз self.speaker_config
+
+        # 1. Создаем плашку с параметрами из конфигурации
         plate_pil = self.image_processor.create_name_plate(
-            name, self.speaker_config.width
+            name=name,
+            width=sc.width,
+            font_size=sc.font_size,
+            font_color=sc.font_color,
+            bg_color=sc.plate_bg_color,
+            border_color=sc.plate_border_color,
+            border_width=sc.plate_border_width,
+            padding=sc.plate_padding,
+            font_family=sc.font_family,
         )
-        # Используем сервис конвертации для получения BGRA массива с альфа-каналом
+
+        # 2. Конвертируем PIL в numpy (BGRA)
         plate_np = self.image_processor.convert_pil_to_cv2(plate_pil)
 
-        # 2. Вычисляем позицию плашки (смещение на 5px ниже окна спикера)
+        # 3. Вычисляем позицию плашки (смещение на 5px ниже окна спикера)
         plate_height = plate_np.shape[0]
-        plate_y = speaker_y + self.speaker_config.height + 5
+        plate_y = speaker_y + sc.height + 5
 
-        # 3. Проверка границ: плашка должна помещаться по высоте
+        # 4. Проверка границ по высоте
         if plate_y + plate_height <= self.export_config.height:
-            # 4. Центрируем плашку по ширине окна спикера
+            # Центрируем плашку по ширине окна спикера
             plate_width = plate_np.shape[1]
-            plate_x = speaker_x + (self.speaker_config.width - plate_width) // 2
+            plate_x = speaker_x + (sc.width - plate_width) // 2
 
-            # 5. Накладываем плашку с альфа-каналом, используя ImageProcessor.overlay_image
-            # Это обеспечивает чистое наложение с учетом прозрачности фона плашки.
+            # 5. Накладываем плашку с альфа-каналом
             if plate_x >= 0 and plate_y >= 0:
                 frame = self.image_processor.overlay_image(
                     frame,
                     plate_np,
                     plate_x,
                     plate_y,
-                    alpha=1.0,  # Плашка накладывается полностью
+                    alpha=1.0,  # плашка полностью видима
                 )
 
         return frame

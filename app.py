@@ -5,6 +5,7 @@ import tempfile
 import os
 from typing import Tuple, Optional
 import base64
+import matplotlib.font_manager as fm
 
 # Добавляем src в путь для импортов, чтобы модули находились корректно.
 sys.path.insert(0, str(Path(__file__).parent / "src"))
@@ -25,6 +26,28 @@ from src.models.export_config import (
 # Инициализация логгера
 logger = setup_logger()
 
+
+def get_system_fonts():
+    """Возвращает список названий установленных в системе шрифтов."""
+    fonts = fm.findSystemFonts(fontpaths=None, fontext='ttf')
+    font_names = set()
+    for font in fonts:
+        try:
+            font_prop = fm.FontProperties(fname=font)
+            font_names.add(font_prop.get_name())
+        except Exception:
+            continue
+    return sorted(font_names)
+
+def get_font_path(font_name: str) -> str:
+    """
+    Возвращает путь к TTF файлу для выбранного шрифта.
+    Если не найден — возвращает стандартный Arial.
+    """
+    system_fonts = fm.findSystemFonts(fontpaths=None, fontext='ttf')
+    font_paths = {fm.FontProperties(fname=f).get_name(): f for f in system_fonts}
+
+    return font_paths.get(font_name, "arial.ttf")
 
 # Вспомогательные функции (оставляем их вне класса, т.к. они утилитарны)
 def hex_to_rgb(hex_color: str) -> Tuple[int, ...]:
@@ -131,84 +154,56 @@ class VideoMeetingComposerApp:
 
     @staticmethod
     def _init_session_state():
-        """
-        Инициализация состояния сессии Streamlit с параметрами по умолчанию.
-        Вызывается только при первом запуске приложения.
-        """
         default_state = {
             "speaker1_name": "Спикер 1",
             "speaker2_name": "Спикер 2",
             "speaker_width": 400,
             "speaker_height": 300,
-            "manual_font_size": 24,  # Ручной размер шрифта по умолчанию
+            "manual_font_size": 24,
             "font_color": "#FFFFFF",
             "plate_bg_color": "#000000",
             "plate_border_color": "#FFFFFF",
             "plate_border_width": 2,
-            "plate_padding": 30,  # Начальное значение для padding
+            "plate_padding": 30,
             "output_width": 1920,
             "output_height": 1080,
             "fps": 30,
             "ffmpeg_preset": "fast",
             "ffmpeg_crf": 23,
             "use_gpu": True,
+            "font_family": "Arial",
         }
         for key, value in default_state.items():
             if key not in st.session_state:
                 st.session_state[key] = value
 
     def _get_config_objects(self) -> Tuple[SpeakerConfig, ExportConfig]:
-        """
-        Создает и возвращает объекты конфигурации SpeakerConfig и ExportConfig
-        на основе текущих значений в st.session_state.
-
-        Включает логику динамического масштабирования и клэмпинга параметров
-        (размер шрифта и отступы) в зависимости от размеров видео.
-
-        :return: Кортеж (SpeakerConfig, ExportConfig).
-        """
-
-        # --- ДИНАМИЧЕСКОЕ МАСШТАБИРОВАНИЕ И КЛЭМПИНГ ---
         output_height = st.session_state.output_height
         speaker_height = st.session_state.speaker_height
-
-        # 1. Динамические границы размера шрифта (от 4% до 15% высоты окна спикера)
         FONT_SIZE_MIN = max(12, int(speaker_height * 0.04))
         FONT_SIZE_MAX = max(FONT_SIZE_MIN + 1, int(speaker_height * 0.15))
-
-        # Применение клэмпинга для шрифта: убеждаемся, что значение пользователя
-        # находится в динамическом диапазоне.
         user_font_size = st.session_state.manual_font_size
         dynamic_font_size = max(FONT_SIZE_MIN, min(FONT_SIZE_MAX, user_font_size))
-
-        # 2. Динамические границы отступов (padding)
-        # MIN: 2px или 1% от высоты видео
+        user_font_name = st.session_state.font_family
+        user_font_path = get_font_path(user_font_name)
         PADDING_MIN = max(2, int(output_height * 0.01))
-
-        # Жесткий лимит Pydantic для отступов
         PYDANTIC_PADDING_LIMIT = 50
-
         user_plate_padding = st.session_state.plate_padding
-        # Клэмпинг: отступ не может быть меньше минимального и больше лимита Pydantic
         dynamic_plate_padding = max(
             PADDING_MIN, min(PYDANTIC_PADDING_LIMIT, user_plate_padding)
         )
-        # -----------------------------------------------------------------------------
-
-        # 1. SpeakerConfig
         speaker_config = SpeakerConfig(
             width=st.session_state.speaker_width,
             height=st.session_state.speaker_height,
-            position=None,  # Позиция рассчитывается внутри CompositionEngine
+            position=None,
             font_size=dynamic_font_size,
             font_color=hex_to_rgb(st.session_state.font_color),
             plate_bg_color=hex_to_rgba(st.session_state.plate_bg_color),
             plate_border_color=hex_to_rgb(st.session_state.plate_border_color),
             plate_border_width=st.session_state.plate_border_width,
             plate_padding=dynamic_plate_padding,
+            font_family=user_font_name,
         )
-
-        # 2. ExportConfig
         export_config = ExportConfig(
             width=st.session_state.output_width,
             height=st.session_state.output_height,
@@ -220,7 +215,6 @@ class VideoMeetingComposerApp:
             audio_codec=AudioCodecConfig(),
             gpu_config=GPUConfig(use_gpu=st.session_state.use_gpu),
         )
-
         return speaker_config, export_config
 
     # --- Секции Рендеринга ---
@@ -323,6 +317,15 @@ class VideoMeetingComposerApp:
             **Текущий размер шрифта:** {st.session_state.manual_font_size}px.
             **Динамические границы:** от **{FONT_SIZE_MIN}** до **{FONT_SIZE_MAX}**px, зависят от **высоты окна спикера** ({speaker_height}px).
             """
+        )
+
+        system_fonts = get_system_fonts()
+
+        st.selectbox(
+            "Шрифт текста",
+            options=system_fonts,
+            key="font_family",
+            help="Выберите шрифт из установленных в системе",
         )
 
         st.color_picker("Цвет текста", key="font_color", help="Цвет текста на плашках")
@@ -568,6 +571,7 @@ class VideoMeetingComposerApp:
             st.session_state.plate_padding,
             st.session_state.output_width,
             st.session_state.output_height,
+            st.session_state.font_family,
         )
         return hash(hash_data)
 

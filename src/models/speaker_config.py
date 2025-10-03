@@ -105,6 +105,7 @@ class SpeakerConfig(BaseConfig):
     plate_padding: int = Field(
         default=10, ge=0, le=50, description="Внутренние отступы плашки (пиксели)"
     )
+    font_family: str = Field()
 
     def validate_config(self) -> bool:
         """
