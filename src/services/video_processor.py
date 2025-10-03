@@ -25,6 +25,16 @@ class VideoProcessor:
                               желаемый FPS выходного видео.
         """
         self.export_config = export_config
+        # Включаем оптимизации OpenCV и настраиваем количество потоков, если указано
+        try:
+            cv2.setUseOptimized(True)
+        except Exception:
+            pass
+        try:
+            if getattr(self.export_config, "threads", 0) and self.export_config.threads > 0:
+                cv2.setNumThreads(self.export_config.threads)
+        except Exception:
+            pass
 
     @staticmethod
     def load_video(video_path: str) -> cv2.VideoCapture:

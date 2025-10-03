@@ -20,7 +20,7 @@ class AudioProcessor:
     Обработка выполняется в моно-режиме для упрощения микширования.
     """
 
-    def __init__(self):
+    def __init__(self, threads: int = 0):
         """
         Инициализация AudioProcessor.
         Устанавливает стандартную частоту дискретизации для обработки аудио.
@@ -29,6 +29,8 @@ class AudioProcessor:
         self.sample_rate = 44100
         # Обработка в моно (один канал)
         self.channels = 1
+        # Количество потоков FFmpeg (0 = авто)
+        self.threads = threads
 
     def extract_audio(
         self, video_path: str
@@ -64,7 +66,7 @@ class AudioProcessor:
                 "-ac",
                 "1",  # Принудительно моно
                 "-threads",
-                "0",
+                str(self.threads),
                 "-y",
                 temp_audio,
             ]

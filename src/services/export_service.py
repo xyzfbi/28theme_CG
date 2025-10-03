@@ -19,7 +19,7 @@ class ExportService:
 
     def __init__(self, export_config: ExportConfig):
         self.export_config = export_config
-        self.audio_processor = AudioProcessor()
+        self.audio_processor = AudioProcessor(threads=export_config.threads)
         self._detect_gpu_codec()
 
     def _detect_gpu_codec(self):
@@ -233,7 +233,15 @@ class ExportService:
             self.audio_processor.save_audio(mixed_audio, temp_audio)
 
             # Текущие (возможно GPU) параметры
-            gpu_cmd = ["ffmpeg", "-i", temp_video, "-i", temp_audio]
+            gpu_cmd = [
+                "ffmpeg",
+                "-threads",
+                str(self.export_config.threads),
+                "-i",
+                temp_video,
+                "-i",
+                temp_audio,
+            ]
             gpu_cmd.extend(self._get_video_codec_params())
             gpu_cmd.extend(
                 [
@@ -255,7 +263,15 @@ class ExportService:
                 return True
 
             # Фолбэк на CPU libx264
-            cpu_cmd = ["ffmpeg", "-i", temp_video, "-i", temp_audio]
+            cpu_cmd = [
+                "ffmpeg",
+                "-threads",
+                str(self.export_config.threads),
+                "-i",
+                temp_video,
+                "-i",
+                temp_audio,
+            ]
             cpu_cmd.extend(
                 [
                     "-c:v",
@@ -303,7 +319,13 @@ class ExportService:
 
         else:
             # Только видео: сначала пробуем текущий (возможно GPU) кодек
-            gpu_cmd = ["ffmpeg", "-i", temp_video]
+            gpu_cmd = [
+                "ffmpeg",
+                "-threads",
+                str(self.export_config.threads),
+                "-i",
+                temp_video,
+            ]
             gpu_cmd.extend(self._get_video_codec_params())
             gpu_cmd.extend(["-movflags", "+faststart", "-y", output_path])
 
@@ -314,6 +336,8 @@ class ExportService:
             # Фолбэк на CPU libx264
             cpu_cmd = [
                 "ffmpeg",
+                "-threads",
+                str(self.export_config.threads),
                 "-i",
                 temp_video,
                 "-c:v",

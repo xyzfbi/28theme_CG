@@ -257,12 +257,16 @@ class CompositionEngine:
                     cap2.release()
                 return False
 
-            # 3. Получаем первый кадр
+            # 3. Получаем первый кадр (защита от нестабильного чтения)
             ret1, frame1 = cap1.read()
+            if not ret1:
+                frame1 = None
             ret2, frame2 = cap2.read()
+            if not ret2:
+                frame2 = None
 
-            if not ret1 or not ret2:
-                print("Не удалось прочитать кадры из видео.")
+            if frame1 is None and frame2 is None:
+                print("Не удалось прочитать кадры из обоих видео.")
                 cap1.release()
                 cap2.release()
                 return False
