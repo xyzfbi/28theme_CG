@@ -65,37 +65,7 @@ speakerWidthInput.addEventListener('input', () => { speakerWidthDisp.textContent
 speakerHeightInput.addEventListener('input', () => { speakerHeightDisp.textContent = speakerHeightInput.value; });
 platePaddingInput.addEventListener('input', () => { platePaddingDisp.textContent = platePaddingInput.value; });
 
-// Drag & Drop for dropzones
-document.querySelectorAll('.dropzone').forEach(dz => {
-  const input = dz.querySelector('input[type="file"]');
-
-  const setFiles = (files) => {
-    try { input.files = files; } catch (_) {}
-    input.dispatchEvent(new Event('change', { bubbles: true }));
-  };
-
-  // Click to open
-  dz.addEventListener('click', () => input.click());
-
-  const onDragOver = (e) => { e.preventDefault(); dz.classList.add('dragover'); };
-  const onDragLeave = () => dz.classList.remove('dragover');
-  const onDrop = (e) => {
-    e.preventDefault(); dz.classList.remove('dragover');
-    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
-      setFiles(e.dataTransfer.files);
-    }
-  };
-
-  // Bind on container
-  dz.addEventListener('dragover', onDragOver);
-  dz.addEventListener('dragleave', onDragLeave);
-  dz.addEventListener('drop', onDrop);
-
-  // Bind on input (covers the zone)
-  input.addEventListener('dragover', onDragOver);
-  input.addEventListener('dragleave', onDragLeave);
-  input.addEventListener('drop', onDrop);
-});
+// dnd удалён
 
 // Only auto-trigger preview when all files are present
 function hasAllFiles() {

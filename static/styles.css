@@ -44,13 +44,7 @@ form input, form select { background: #0b121b; color: var(--text); border: 1px s
 form input[type="color"] { padding: 2px; height: 40px; }
 form input[type="range"] { padding: 0; height: 6px; accent-color: var(--primary); }
 
-.upload-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-@media (max-width: 900px) { .upload-grid { grid-template-columns: 1fr; } }
-.dropzone { position: relative; display: grid; gap: 6px; align-content: start; background: #0c121b; border: 1px dashed #2a3a55; border-radius: 12px; padding: 14px; cursor: pointer; }
-.dropzone.dragover { border-color: var(--primary); background: #0d1626; }
-.dropzone .dz-title { font-weight: 600; color: var(--text); }
-.dropzone .dz-label { color: var(--muted); font-size: 13px; }
-.dropzone .file-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+/* удалены стили dnd */
 
 .form-actions { display: flex; gap: 12px; margin-top: 8px; }
 

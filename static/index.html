@@ -36,22 +36,21 @@
       <form id="composer-form">
         <fieldset>
           <legend>⬆️ Загрузка файлов</legend>
-          <div class="upload-grid">
-            <div class="dropzone" data-target="background">
-              <div class="dz-title">Фон (jpg/png/bmp)</div>
-              <input class="file-input" type="file" name="background" accept=".jpg,.jpeg,.png,.bmp" required />
-            </div>
-            <div class="dropzone" data-target="speaker1">
-              <div class="dz-title">Видео спикера 1</div>
-              <input class="file-input" type="file" name="speaker1" accept=".mp4,.avi,.mov,.mkv" required />
-              <input type="text" name="speaker1_name" placeholder="Имя первого спикера" required />
-            </div>
-            <div class="dropzone" data-target="speaker2">
-              <div class="dz-title">Видео спикера 2</div>
-              <input class="file-input" type="file" name="speaker2" accept=".mp4,.avi,.mov,.mkv" required />
-              <input type="text" name="speaker2_name" placeholder="Имя второго спикера" required />
-            </div>
-          </div>
+          <label>Фон (jpg/png/bmp)
+            <input type="file" name="background" accept=".jpg,.jpeg,.png,.bmp" required />
+          </label>
+          <label>Видео спикера 1 (mp4/avi/mov/mkv)
+            <input type="file" name="speaker1" accept=".mp4,.avi,.mov,.mkv" required />
+          </label>
+          <label>Имя первого спикера
+            <input type="text" name="speaker1_name" placeholder="Имя первого спикера" required />
+          </label>
+          <label>Видео спикера 2 (mp4/avi/mov/mkv)
+            <input type="file" name="speaker2" accept=".mp4,.avi,.mov,.mkv" required />
+          </label>
+          <label>Имя второго спикера
+            <input type="text" name="speaker2_name" placeholder="Имя второго спикера" required />
+          </label>
         </fieldset>
 
         <fieldset>
