@@ -5,6 +5,7 @@ import tempfile
 import os
 from typing import Tuple, Optional
 import base64
+import threading
 
 # Добавляем src в путь для импортов, чтобы модули находились корректно.
 sys.path.insert(0, str(Path(__file__).parent / "src"))
@@ -206,6 +207,7 @@ class VideoMeetingComposerApp:
             plate_border_color=hex_to_rgb(st.session_state.plate_border_color),
             plate_border_width=st.session_state.plate_border_width,
             plate_padding=dynamic_plate_padding,
+            font_path=st.session_state.get("font_path") or None,
         )
 
         # 2. ExportConfig
@@ -219,6 +221,7 @@ class VideoMeetingComposerApp:
             ),
             audio_codec=AudioCodecConfig(),
             gpu_config=GPUConfig(use_gpu=st.session_state.use_gpu),
+            threads=st.session_state.get("ffmpeg_threads", 0),
         )
 
         return speaker_config, export_config
@@ -327,6 +330,48 @@ class VideoMeetingComposerApp:
 
         st.color_picker("Цвет текста", key="font_color", help="Цвет текста на плашках")
 
+        # Выбор шрифта: системный предустановленный или загрузка TTF
+        st.subheader("🅰️ Шрифты")
+        font_mode = st.radio(
+            "Источник шрифта",
+            options=["Системный", "Пользовательский TTF"],
+            key="font_mode",
+            horizontal=True,
+            help="Выберите системный шрифт или загрузите свой .ttf",
+        )
+        if font_mode == "Системный":
+            # Предустановленные варианты: отображаются названия, но фактически будут отображаться системные пути
+            system_font = st.selectbox(
+                "Системный шрифт",
+                options=[
+                    "DejaVuSans-Bold",
+                    "Arial",
+                ],
+                key="system_font_name",
+                help="Будет использована подходящая системная версия выбранного шрифта",
+            )
+            # Сопоставление имени к пути. Если путь недоступен, PIL сам подберет фолбэк.
+            if system_font == "DejaVuSans-Bold":
+                st.session_state.font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+            elif system_font == "Arial":
+                st.session_state.font_path = "arial.ttf"
+        else:
+            uploaded_font = st.file_uploader(
+                "Загрузите TTF-файл шрифта",
+                type=["ttf", "otf"],
+                key="uploaded_font_file",
+                help="Шрифт будет использован для рендера плашек",
+            )
+            if uploaded_font is not None:
+                try:
+                    # Сохраняем загруженный шрифт во временный файл внутри сессии
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".ttf") as tf:
+                        tf.write(uploaded_font.getbuffer())
+                        st.session_state.font_path = tf.name
+                        st.success("Шрифт загружен и будет использован")
+                except Exception as e:
+                    st.warning(f"Не удалось сохранить шрифт: {e}")
+
         st.subheader("🎨 Фон плашки")
         st.color_picker("Цвет фона", key="plate_bg_color", help="Цвет фона плашки")
         st.color_picker(
@@ -410,6 +455,16 @@ class VideoMeetingComposerApp:
             help="Качество видео (меньше = лучше качество, больше размер)",
         )
 
+        # Количество потоков FFmpeg/обработки
+        st.slider(
+            "Потоки кодирования (FFmpeg)",
+            min_value=0,
+            max_value=32,
+            step=1,
+            key="ffmpeg_threads",
+            help="0 = авто (все ядра). Увеличьте для ускорения кодирования",
+        )
+
     def _render_settings_section(self):
         """Рендерит секцию настроек с вкладками."""
         st.header("⚙️ Настройки")
@@ -442,14 +497,14 @@ class VideoMeetingComposerApp:
                     preview_placeholder.image(
                         preview_image,
                         caption="Предпросмотр композиции",
-                        width="stretch",
+                        use_container_width=True,
                     )
                     st.download_button(
                         label="📥 Скачать предпросмотр",
                         data=preview_image,
                         file_name="preview.jpg",
                         mime="image/jpeg",
-                        width="stretch",
+                        use_container_width=True,
                     )
                 else:
                     st.error("❌ Ошибка создания предпросмотра")
@@ -549,12 +604,24 @@ class VideoMeetingComposerApp:
         speaker1_file = st.session_state.get("speaker1_file")
         speaker2_file = st.session_state.get("speaker2_file")
 
+        # Безопасно получаем file_id, если он присутствует, иначе используем имя/размер как суррогат
+        def _file_identity(f):
+            if not f:
+                return None
+            fid = getattr(f, "file_id", None)
+            if fid:
+                return fid
+            try:
+                return (getattr(f, "name", None), getattr(f, "size", None))
+            except Exception:
+                return None
+
         hash_data = (
             # Файлы: используем file_id для уникальности (если файл перезагружается),
             # иначе None.
-            background_file.file_id if background_file else None,
-            speaker1_file.file_id if speaker1_file else None,
-            speaker2_file.file_id if speaker2_file else None,
+            _file_identity(background_file),
+            _file_identity(speaker1_file),
+            _file_identity(speaker2_file),
             # Настройки, влияющие на внешний вид
             st.session_state.speaker1_name,
             st.session_state.speaker2_name,
@@ -568,6 +635,7 @@ class VideoMeetingComposerApp:
             st.session_state.plate_padding,
             st.session_state.output_width,
             st.session_state.output_height,
+            st.session_state.get("font_path"),
         )
         return hash(hash_data)
 
@@ -576,7 +644,7 @@ class VideoMeetingComposerApp:
         st.markdown("---")
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            if st.button("🎬 Создать видео", type="primary", width="stretch"):
+            if st.button("🎬 Создать видео", type="primary", use_container_width=True):
                 if _validate_inputs():
                     self._create_video()
                 else:
@@ -631,7 +699,7 @@ class VideoMeetingComposerApp:
                                 data=f.read(),
                                 file_name="meeting_output.mp4",
                                 mime="video/mp4",
-                                width="stretch",
+                                use_container_width=True,
                             )
                     else:
                         st.error("❌ Ошибка создания видео")

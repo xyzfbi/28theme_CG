@@ -117,18 +117,28 @@ class ImageProcessor:
 
         :return: Объект ImageFont.FreeTypeFont. В случае неудачи загружается стандартный шрифт.
         """
+        # 0) Пользовательский путь к шрифту, если задан в конфиге
+        if self.speaker_config.font_path:
+            try:
+                return ImageFont.truetype(
+                    self.speaker_config.font_path, self.speaker_config.font_size
+                )
+            except (OSError, IOError):
+                # Переходим к фолбэкам ниже
+                pass
+
+        # 1) Попытка загрузить системный шрифт Linux (DejaVuSans-Bold)
         try:
-            # Попытка загрузить системный шрифт Linux (DejaVuSans-Bold)
             return ImageFont.truetype(
                 "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
                 self.speaker_config.font_size,
             )
         except (OSError, IOError):
+            # 2) Попытка загрузить шрифт Arial (часто используется в Windows)
             try:
-                # Попытка загрузить шрифт Arial (часто используется в Windows)
                 return ImageFont.truetype("arial.ttf", self.speaker_config.font_size)
             except (OSError, IOError):
-                # Если все попытки провалились, загружаем шрифт по умолчанию
+                # 3) Полный фолбэк: стандартный шрифт PIL
                 return ImageFont.load_default()
 
     @staticmethod

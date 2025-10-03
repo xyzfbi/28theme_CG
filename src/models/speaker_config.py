@@ -106,6 +106,11 @@ class SpeakerConfig(BaseConfig):
         default=10, ge=0, le=50, description="Внутренние отступы плашки (пиксели)"
     )
 
+    # Путь к пользовательскому TTF-шрифту для рендера плашек
+    font_path: Optional[str] = Field(
+        default=None, description="Полный путь к TTF-файлу шрифта для плашек"
+    )
+
     def validate_config(self) -> bool:
         """
         Проверка корректности всех параметров конфигурации спикера.
