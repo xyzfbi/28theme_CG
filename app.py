@@ -497,14 +497,14 @@ class VideoMeetingComposerApp:
                     preview_placeholder.image(
                         preview_image,
                         caption="Предпросмотр композиции",
-                        width="stretch",
+                        use_container_width=True,
                     )
                     st.download_button(
                         label="📥 Скачать предпросмотр",
                         data=preview_image,
                         file_name="preview.jpg",
                         mime="image/jpeg",
-                        width="stretch",
+                        use_container_width=True,
                     )
                 else:
                     st.error("❌ Ошибка создания предпросмотра")
@@ -644,7 +644,7 @@ class VideoMeetingComposerApp:
         st.markdown("---")
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            if st.button("🎬 Создать видео", type="primary", width="stretch"):
+            if st.button("🎬 Создать видео", type="primary", use_container_width=True):
                 if _validate_inputs():
                     self._create_video()
                 else:
@@ -699,7 +699,7 @@ class VideoMeetingComposerApp:
                                 data=f.read(),
                                 file_name="meeting_output.mp4",
                                 mime="video/mp4",
-                                width="stretch",
+                                use_container_width=True,
                             )
                     else:
                         st.error("❌ Ошибка создания видео")
