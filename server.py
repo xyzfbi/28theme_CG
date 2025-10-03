@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Tuple
 
 from fastapi import FastAPI, UploadFile, File, Form
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 # Ensure local imports work
@@ -180,7 +180,10 @@ async def generate_preview(
             if not success:
                 return JSONResponse({"error": "Failed to create preview"}, status_code=500)
 
-            return FileResponse(preview_path, media_type="image/jpeg", filename="preview.jpg")
+            # Read bytes before TemporaryDirectory is cleaned up
+            with open(preview_path, "rb") as f:
+                data = f.read()
+            return Response(content=data, media_type="image/jpeg", headers={"Content-Disposition": "attachment; filename=preview.jpg"})
     except Exception as e:
         logger.error(f"Preview error: {e}")
         return JSONResponse({"error": str(e)}, status_code=500)
@@ -255,7 +258,10 @@ async def export_video(
             if not success:
                 return JSONResponse({"error": "Failed to export video"}, status_code=500)
 
-            return FileResponse(output_file_path, media_type="video/mp4", filename="meeting_output.mp4")
+            # Read bytes before TemporaryDirectory is cleaned up
+            with open(output_file_path, "rb") as f:
+                data = f.read()
+            return Response(content=data, media_type="video/mp4", headers={"Content-Disposition": "attachment; filename=meeting_output.mp4"})
     except Exception as e:
         logger.error(f"Export error: {e}")
         return JSONResponse({"error": str(e)}, status_code=500)
