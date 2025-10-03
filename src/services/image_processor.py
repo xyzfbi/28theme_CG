@@ -11,7 +11,10 @@ from typing import Optional, Tuple
 from ..models.speaker_config import SpeakerConfig
 import matplotlib.font_manager as fm
 
-def get_text_size(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.ImageFont) -> tuple[float, float]:
+
+def get_text_size(
+    draw: ImageDraw.ImageDraw, text: str, font: ImageFont.ImageFont
+) -> tuple[float, float]:
     """
     Возвращает ширину и высоту текста для плашки.
     Работает с Pillow >= 10.
@@ -20,6 +23,7 @@ def get_text_size(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.ImageFon
     width = bbox[2] - bbox[0]
     height = bbox[3] - bbox[1]
     return width, height
+
 
 class ImageProcessor:
     """
@@ -59,16 +63,16 @@ class ImageProcessor:
             return None
 
     def create_name_plate(
-            self,
-            name: str,
-            width: int,
-            font_size: int = 24,
-            font_color: Tuple[int, int, int] = (255, 255, 255),
-            bg_color: Tuple[int, int, int, int] = (0, 0, 0, 180),
-            border_color: Tuple[int, int, int] = (255, 255, 255),
-            border_width: int = 2,
-            padding: int = 10,
-            font_family: str = "Arial",
+        self,
+        name: str,
+        width: int,
+        font_size: int = 24,
+        font_color: Tuple[int, int, int] = (255, 255, 255),
+        bg_color: Tuple[int, int, int, int] = (0, 0, 0, 180),
+        border_color: Tuple[int, int, int] = (255, 255, 255),
+        border_width: int = 2,
+        padding: int = 10,
+        font_family: str = "Arial",
     ) -> Image.Image:
         """
         Создает плашку с именем спикера.

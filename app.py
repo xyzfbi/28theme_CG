@@ -29,7 +29,7 @@ logger = setup_logger()
 
 def get_system_fonts():
     """Возвращает список названий установленных в системе шрифтов."""
-    fonts = fm.findSystemFonts(fontpaths=None, fontext='ttf')
+    fonts = fm.findSystemFonts(fontpaths=None, fontext="ttf")
     font_names = set()
     for font in fonts:
         try:
@@ -39,15 +39,17 @@ def get_system_fonts():
             continue
     return sorted(font_names)
 
+
 def get_font_path(font_name: str) -> str:
     """
     Возвращает путь к TTF файлу для выбранного шрифта.
     Если не найден — возвращает стандартный Arial.
     """
-    system_fonts = fm.findSystemFonts(fontpaths=None, fontext='ttf')
+    system_fonts = fm.findSystemFonts(fontpaths=None, fontext="ttf")
     font_paths = {fm.FontProperties(fname=f).get_name(): f for f in system_fonts}
 
     return font_paths.get(font_name, "arial.ttf")
+
 
 # Вспомогательные функции (оставляем их вне класса, т.к. они утилитарны)
 def hex_to_rgb(hex_color: str) -> Tuple[int, ...]:
@@ -185,7 +187,7 @@ class VideoMeetingComposerApp:
         user_font_size = st.session_state.manual_font_size
         dynamic_font_size = max(FONT_SIZE_MIN, min(FONT_SIZE_MAX, user_font_size))
         user_font_name = st.session_state.font_family
-        user_font_path = get_font_path(user_font_name)
+        # user_font_path = get_font_path(user_font_name)
         PADDING_MIN = max(2, int(output_height * 0.01))
         PYDANTIC_PADDING_LIMIT = 50
         user_plate_padding = st.session_state.plate_padding
