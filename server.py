@@ -168,6 +168,7 @@ async def generate_preview(
                 speaker_width,
                 speaker_height,
                 manual_font_size,
+                font_family,
                 font_color,
                 plate_bg_color,
                 plate_border_color,
