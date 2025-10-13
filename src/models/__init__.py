@@ -1,6 +1,4 @@
-"""
-Модели данных для Video Meeting Composer
-"""
+"""Модели данных для Video Meeting Composer"""
 
 from .base import BaseConfig
 from .meeting_config import MeetingConfig

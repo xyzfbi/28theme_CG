@@ -6,7 +6,7 @@
 
 import cv2
 import numpy as np
-from ..models.export_config import ExportConfig
+from ..models import ExportConfig
 
 
 class VideoProcessor:

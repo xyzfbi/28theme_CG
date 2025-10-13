@@ -8,7 +8,7 @@
 
 from typing import Optional, Tuple
 from pydantic import Field
-from .base import BaseConfig
+from src.models import BaseConfig
 
 
 class PositionConfig(BaseConfig):

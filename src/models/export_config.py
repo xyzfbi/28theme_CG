@@ -2,7 +2,8 @@
 
 from typing import Optional, Literal
 from pydantic import Field
-from .base import BaseConfig
+
+from src.models import BaseConfig
 
 
 class VideoCodecConfig(BaseConfig):

@@ -11,12 +11,11 @@ import matplotlib.font_manager as fm
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 # Импорты конфигураций и сервисов
-from src.services.composition_engine import CompositionEngine
-from src.services.export_service import ExportService
-from src.utils.logger import setup_logger
-from src.models.meeting_config import MeetingConfig
-from src.models.speaker_config import SpeakerConfig
-from src.models.export_config import (
+from src.services import CompositionEngine, ExportService
+from src.utils import setup_logger
+from src.models import (
+    MeetingConfig,
+    SpeakerConfig,
     ExportConfig,
     VideoCodecConfig,
     AudioCodecConfig,
@@ -179,7 +178,8 @@ class VideoMeetingComposerApp:
             if key not in st.session_state:
                 st.session_state[key] = value
 
-    def _get_config_objects(self) -> Tuple[SpeakerConfig, ExportConfig]:
+    @staticmethod
+    def _get_config_objects() -> Tuple[SpeakerConfig, ExportConfig]:
         output_height = st.session_state.output_height
         speaker_height = st.session_state.speaker_height
         FONT_SIZE_MIN = max(12, int(speaker_height * 0.04))

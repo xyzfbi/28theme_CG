@@ -3,11 +3,13 @@
 единого кадра или последовательности кадров, формирующих финальное видео.
 """
 
-import numpy as np
-import cv2
 from typing import Optional, Tuple
-from ..models.speaker_config import SpeakerConfig
-from ..models.export_config import ExportConfig
+
+import cv2
+import numpy as np
+
+from ..models import SpeakerConfig, ExportConfig
+
 from .video_processor import VideoProcessor
 from .image_processor import ImageProcessor
 
@@ -32,29 +34,6 @@ class CompositionEngine:
         # Инициализация дочерних сервисов, которые будут выполнять основную работу
         self.video_processor = VideoProcessor(export_config)
         self.image_processor = ImageProcessor(speaker_config)
-
-    def compose_frame_with_names(
-        self,
-        background: np.ndarray,
-        speaker1_frame: Optional[np.ndarray],
-        speaker2_frame: Optional[np.ndarray],
-        speaker1_name: str,
-        speaker2_name: str,
-    ) -> np.ndarray:
-        """
-        Вспомогательный метод для композиции кадра с обязательным указанием имен спикеров.
-        Просто вызывает основной метод `compose_frame`.
-
-        :param background: Кадр фонового изображения.
-        :param speaker1_frame: Текущий кадр первого спикера (может быть None).
-        :param speaker2_frame: Текущий кадр второго спикера (может быть None).
-        :param speaker1_name: Имя первого спикера.
-        :param speaker2_name: Имя второго спикера.
-        :return: Композиционный кадр.
-        """
-        return self.compose_frame(
-            background, speaker1_frame, speaker2_frame, speaker1_name, speaker2_name
-        )
 
     def compose_frame(
         self,
@@ -278,7 +257,7 @@ class CompositionEngine:
                 return False
 
             # 4. Создаем композицию
-            composed_frame = self.compose_frame_with_names(
+            composed_frame = self.compose_frame(
                 background, frame1, frame2, speaker1_name, speaker2_name
             )
 

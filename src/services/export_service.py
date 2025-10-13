@@ -8,10 +8,11 @@ import subprocess
 import cv2
 import numpy as np
 from typing import Optional
-from ..models.export_config import ExportConfig
-from ..models.meeting_config import MeetingConfig
-from .composition_engine import CompositionEngine
-from .audio_processor import AudioProcessor
+
+from ..models import ExportConfig, MeetingConfig
+from .composition_engine import CompositionEngine  # ✅ Относительный!
+from .audio_processor import AudioProcessor  # ✅ Относительный!
+from ..utils import setup_logger
 
 
 class ExportService:
@@ -20,6 +21,7 @@ class ExportService:
     def __init__(self, export_config: ExportConfig):
         self.export_config = export_config
         self.audio_processor = AudioProcessor()
+        self.logger = setup_logger("export_service")
         self._detect_gpu_codec()
 
     def _detect_gpu_codec(self):
@@ -35,19 +37,19 @@ class ExportService:
             encoders = result.stdout
 
             if "h264_nvenc" in encoders:
-                print("Обнаружен NVIDIA GPU - используем NVENC")
+                self.logger.info("Обнаружен NVIDIA GPU - используем NVENC")
                 self.export_config.gpu_config.gpu_codec = "h264_nvenc"
             elif "h264_qsv" in encoders:
-                print("Обнаружен Intel GPU - используем QSV")
+                self.logger.info("Обнаружен Intel GPU - используем QSV")
                 self.export_config.gpu_config.gpu_codec = "h264_qsv"
             elif "h264_vaapi" in encoders:
-                print("Обнаружен VAAPI - используем аппаратное ускорение")
+                self.logger.info("Обнаружен VAAPI - используем аппаратное ускорение")
                 self.export_config.gpu_config.gpu_codec = "h264_vaapi"
             else:
-                print("GPU кодеки не найдены - используем CPU")
+                self.logger.info("GPU кодеки не найдены - используем CPU")
                 self.export_config.gpu_config.gpu_codec = "libx264"
         except Exception as e:
-            print("Ошибка определения GPU - используем CPU", e)
+            self.logger.error("Ошибка определения GPU - используем CPU", e)
             self.export_config.gpu_config.gpu_codec = "libx264"
 
     def export_video(

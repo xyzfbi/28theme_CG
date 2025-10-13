@@ -8,8 +8,9 @@ import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 from typing import Optional, Tuple
-from ..models.speaker_config import SpeakerConfig
 import matplotlib.font_manager as fm
+
+from ..models import SpeakerConfig
 
 
 def get_text_size(
@@ -126,27 +127,6 @@ class ImageProcessor:
         draw.text((text_x, text_y), name, font=font, fill=font_color)
 
         return plate
-
-    def _load_font(self) -> ImageFont.FreeTypeFont:
-        """
-        Загрузка шрифта по имени или пути из SpeakerConfig.
-        Если не удалось — fallback на стандартный.
-        """
-        font_path_or_name = getattr(self.speaker_config, "font_family", None)
-        font_size = getattr(self.speaker_config, "font_size", 24)
-
-        try:
-            if font_path_or_name:
-                # Если передан путь к ttf
-                return ImageFont.truetype(font_path_or_name, font_size)
-            else:
-                # Попытка загрузить системный шрифт по имени
-                return ImageFont.truetype("DejaVuSans-Bold.ttf", font_size)
-        except (OSError, IOError):
-            try:
-                return ImageFont.truetype("arial.ttf", font_size)
-            except (OSError, IOError):
-                return ImageFont.load_default()
 
     @staticmethod
     def overlay_image(
